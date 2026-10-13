@@ -1,0 +1,18 @@
+{
+  "name": "python-lab-editor",
+  "private": true,
+  "description": "Builds site/vendor/codemirror.js (CodeMirror 6 + Python) as one file. Run: npm ci && npm run build",
+  "scripts": {
+    "build": "esbuild entry.js --bundle --minify --format=iife --global-name=CM --target=es2020 --legal-comments=none --outfile=../site/vendor/codemirror.js && cp node_modules/@codemirror/view/LICENSE ../site/vendor/codemirror.LICENSE"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "6.16.0",
+    "@codemirror/commands": "6.5.0",
+    "@codemirror/lang-python": "6.1.6",
+    "@codemirror/language": "6.10.1",
+    "@codemirror/state": "6.4.1",
+    "@codemirror/view": "6.26.3",
+    "@lezer/highlight": "1.2.0",
+    "esbuild": "0.20.2"
+  }
+}

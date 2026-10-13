@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tuples &amp; Lists Lab</title>
+<meta name="description" content="Python practice on tuples and lists: clickable pictures, practice checks and a real Python editor.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/lab.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Python practice · tuples and lists</div>
+    <h1><span class="t">Tuples</span> &amp; <span class="l">Lists</span> Lab</h1>
+    <p class="lede">Two ways Python keeps things in a row. A tuple is a row of sealed boxes: you can look but not touch. A list is a row of open boxes: you can swap, add and remove.</p>
+    <div class="idea">
+      <div class="kind-card">
+        <h3><span class="glyph">( )</span> Tuple: sealed</h3>
+        <div class="demo">spells = ('fireball', 'ice blast')</div>
+        <ul>
+          <li>Read one item: <code>spells[0]</code></li>
+          <li>Slice a piece: <code>spells[0:2]</code></li>
+          <li>Count items: <code>len(spells)</code></li>
+          <li>Changing an item is an <strong>error</strong>.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-list">
+        <h3><span class="glyph">[ ]</span> List: open</h3>
+        <div class="demo">order = ['soda', 'salad']</div>
+        <ul>
+          <li>Everything a tuple can do, plus:</li>
+          <li>Change one: <code>order[1] = 'fries'</code></li>
+          <li>Add to the end: <code>order.append('cake')</code></li>
+          <li>Remove one: <code>del order[0]</code></li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Poke the picture to see what each index gives you.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="tuple">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Magic Spell Book</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">A wizard keeps their spell names in a <strong>tuple</strong>, because the spells never change.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge" data-badge="q1"></span></div>
+      <div class="row-wrap"><div class="var-name">spells =</div><span class="brk" data-open="q1">(</span><div class="row" data-row="q1"></div><span class="brk" data-close="q1">)</span></div>
+      <div class="controls">
+        <span class="label">Count from</span>
+        <div class="seg" role="group" aria-label="Count from">
+          <button type="button" id="q1-front" aria-pressed="true">the front: 0, 1, 2…</button>
+          <button type="button" id="q1-back" aria-pressed="false">the back: -1, -2…</button>
+        </div>
+        <button type="button" class="btn warn" data-run="q1" data-code="spells[0] = 'meteor'">Try: spells[0] = 'meteor'</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <div class="slicer">
+        <span class="label">Slice explorer</span>
+        <div class="sl"><label for="q1-start">start</label><input type="range" id="q1-start" min="0" max="5" value="0"><output id="q1-start-o">0</output></div>
+        <div class="sl"><label for="q1-stop">stop</label><input type="range" id="q1-stop" min="0" max="5" value="3"><output id="q1-stop-o">3</output></div>
+        <div class="slice-read" id="q1-slice-read"></div>
+        <p class="tip">The <strong>red dashed fence</strong> is the stop. A slice goes up to the fence but never includes the box after it.</p>
+      </div>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: spells[2]" data-label="Python shell for spells"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="tuple">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Treasure Chest Coordinates</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">A pirate stores the coordinates of buried treasure in a <strong>nested tuple</strong>: a tuple of tuples. Each inner tuple holds one <code>(x, y)</code> location.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge" data-badge="q2"></span></div>
+      <div class="split map-split">
+        <div style="display:grid;gap:14px;min-width:0">
+          <div class="row-wrap"><div class="var-name">treasure =</div><span class="brk" data-open="q2">(</span><div class="row" data-row="q2"></div><span class="brk" data-close="q2">)</span></div>
+          <p class="tip">Click a number inside a pair to get <code>treasure[i][j]</code>. Click an index label on top to get the whole pair <code>treasure[i]</code>. Two sets of brackets: the first picks the pair, the second picks x <code>[0]</code> or y <code>[1]</code>.</p>
+          <div class="controls">
+            <button type="button" class="btn" data-run="q2" data-code="len(treasure)">len(treasure)</button>
+            <button type="button" class="btn" data-run="q2" data-code="treasure[1:3]">treasure[1:3]</button>
+            <button type="button" class="btn warn" data-run="q2" data-code="treasure[0] = (4, 4)">Try: treasure[0] = (4, 4)</button>
+            <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+          </div>
+        </div>
+        <svg class="map" data-map="q2" viewBox="0 0 244 252" role="img" aria-label="Treasure map with the four coordinate pairs plotted"></svg>
+      </div>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: treasure[2][0]" data-label="Python shell for treasure"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="list">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Pizza Party Orders</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">A pizza shop stores each order as a <strong>list</strong>, because orders change: extra toppings, cancelled items, and so on.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge" data-badge="q3"></span></div>
+      <div class="row-wrap"><div class="var-name">order =</div><span class="brk" data-open="q3">[</span><div class="row" data-row="q3"></div><span class="brk" data-close="q3">]</span></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="order[3] = 'chicken wings'">order[3] = 'chicken wings'</button>
+        <button type="button" class="btn" data-run="q3" data-code="order.append('ice cream')">order.append('ice cream')</button>
+        <button type="button" class="btn" data-run="q3" data-code="del order[4]">del order[4]</button>
+        <button type="button" class="btn" data-run="q3" data-code="len(order)">len(order)</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip">Watch the index numbers after <code>del</code>: everything after the deleted box slides left and gets a new index. Press <code>del order[4]</code> twice and see what goes the second time.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: order[-1]" data-label="Python shell for order"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first, so you get the latest results.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached. A script that runs longer than 5 seconds is stopped, so a loop that never ends can't freeze the page.</p>
+    <ul>
+      <li>Each task has two checks. The <strong>practice check</strong> is a one-line Python box under each task: the student types code, sees what it prints, and a hidden <code>assert</code> marks it ✓ or "not yet" without showing the answer. The <strong>homework.py</strong> check is the graded one: the script has to print the right thing, using indexing rather than typing the answer.</li>
+      <li>The hand-in report is a <code>.txt</code> file: the score and every check at the top, then the student's scripts and what they printed. To re-run a script, paste it into a <code>homework.py</code> editor on this page, where it runs sandboxed in the browser. Please don't run students' code with Python on your own computer.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt.</li>
+      <li>Q1 task 5 is a written answer. The page only checks that it mentions the error; grading the explanation is up to you.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+    <details><summary>Answer key</summary><pre id="answer-key"></pre></details>
+  </section>
+</div>
+
+<script src="js/config.js"></script>
+<script src="vendor/codemirror.js"></script>
+<script src="js/lesson.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
