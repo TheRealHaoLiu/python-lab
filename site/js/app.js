@@ -3,6 +3,9 @@
 'use strict';
 // Site root = the folder above js/, so homework pages in subfolders find shared files.
 const SITE = new URL('..', document.currentScript.src);
+// Deploy stamps ?v=<commit> on script links; pass it on so browsers never mix old and new files.
+const BUILD = new URL(document.currentScript.src).searchParams.get('v') || 'dev';
+const withBuild = u => { const x = new URL(u, SITE); x.searchParams.set('v', BUILD); return x.href; };
 const CFG = Object.assign({ pyodide: 'vendor/pyodide/', timeoutMs: 5000 }, window.LAB_CONFIG || {});
 const QS = window.LESSON.questions;
 const LESSON_ID = window.LESSON.id || 'lesson';
@@ -85,8 +88,8 @@ const Py = (() => {
     // Start the worker from a blob: URL so it inherits this page's Content-Security-Policy
     // (a worker loaded from its own file would get no policy on GitHub Pages).
     if (!workerSrc) {
-      const boot = { pyodide: new URL(CFG.pyodide, SITE).href, labkit: new URL('py/labkit.py', SITE).href };
-      const src = await (await fetch(new URL('js/py-worker.js', SITE))).text();
+      const boot = { pyodide: new URL(CFG.pyodide, SITE).href, labkit: withBuild('py/labkit.py') };
+      const src = await (await fetch(withBuild('js/py-worker.js'))).text();
       workerSrc = URL.createObjectURL(new Blob([`self.LAB_BOOT = ${JSON.stringify(boot)};\n`, src], { type: 'text/javascript' }));
     }
     worker = new Worker(workerSrc);
