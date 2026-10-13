@@ -28,7 +28,8 @@
   })();
 
   window.LESSON = {
-    title: 'Tuples & Lists Lab',
+    id: 'hw5',
+    title: 'Homework 5: Tuples & Lists',
     expectedOutput: [SP, 'ice blast', "('fireball', 'ice blast', 'thunder strike')", 'shadow step', TR, '(3, 5)', '9', '((3, 5), (7, 2))', '4', OR0, 'soda', OR1, "['cheese pizza', 'garlic bread', 'soda']", 'ice cream', '5'],
     questions: [
       {

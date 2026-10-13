@@ -1,7 +1,11 @@
 # Python Lab
 
-Interactive Python practice for a middle-school class: the *Tuples & Lists* homework
-(spell book, treasure map, pizza order), in two forms.
+Interactive Python homework for a middle-school class, live at
+<https://therealhaoliu.github.io/python-lab/>. Each homework comes in two forms.
+
+| # | Homework | Page | Notebook |
+|---|---|---|---|
+| 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | `notebooks/hw5-tuples-and-lists.ipynb` |
 
 | | What it is | Python |
 |---|---|---|
@@ -15,10 +19,12 @@ computer, in a Web Worker.
 
 ```
 site/
-  index.html        page markup + LAB_CONFIG (where Pyodide comes from, run timeout)
-  css/lab.css       all styles (light and dark)
-  js/lesson.js      the lesson: questions, tasks, assert checks, grading rules
-  js/app.js         page behaviour: pictures, editors, checks, report
+  index.html        landing page: list of homeworks
+  hw5/index.html    Homework 5 page markup (pictures, sections)
+  hw5/lesson.js     Homework 5 content: questions, tasks, hidden checks, grading rules
+  css/lab.css       shared styles (light and dark)
+  js/config.js      where Pyodide comes from, run timeout
+  js/app.js         shared page behaviour: pictures, editors, checks, report
   js/py-worker.js   loads Pyodide and labkit.py off the main thread
   py/labkit.py      Python side: runs code, formats errors like `python`, reports what a line touched
 ```
@@ -29,7 +35,7 @@ Try it locally (it must be served over http, not opened as a file):
 python3 -m http.server 8000 --directory site
 ```
 
-then open <http://localhost:8000>.
+then open <http://localhost:8000> (Homework 5 is at `/hw5/`).
 
 **Python source.** Pyodide 0.26.4 is committed under `site/vendor/pyodide/` (about 14 MB,
 fetched once per student and cached). `scripts/vendor-pyodide.sh [version]` refreshes it.
@@ -54,15 +60,16 @@ Python restarts, so `while True:` can't freeze the page.
 **Student data.** Code, check inputs, names and scores live in the student's own browser
 (`localStorage`). Nothing is sent anywhere. The hand-in report is a `.txt` file: score and checks at the top, then each script and what it printed.
 
-**Adding a lesson.** Copy `js/lesson.js`; the format is documented at the top of that file.
-The pictures in `index.html` (slice explorer, treasure map, pizza buttons) are specific to
-this lesson.
+**Adding a homework.** Copy `site/hw5/` to `site/hwN/`, give `lesson.js` a new `id` (it
+namespaces each student's saved work) and title, and add it to the list in `site/index.html`.
+The lesson format is documented at the top of `lesson.js`. Some picture code in `js/app.js`
+(slice explorer, treasure map, pizza sync) is still specific to Homework 5.
 
 ## The Colab notebook (`notebooks/`)
 
-* `tuples-and-lists.ipynb`: the student copy. Every task has a `...` to replace and an
+* `hw5-tuples-and-lists.ipynb`: the student copy. Every task has a `...` to replace and an
   `assert` with a hint.
-* `tuples-and-lists-ANSWERS.ipynb`: the answer key, built locally and kept out of git
+* `hw5-tuples-and-lists-ANSWERS.ipynb`: the answer key, built locally and kept out of git
   (`python3 build_notebook.py --answers`). Every cell passes.
 * `build_notebook.py`: edit the cells here, then run `python3 build_notebook.py` and
   `python3 build_notebook.py --answers`.

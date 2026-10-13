@@ -1,15 +1,18 @@
 /* Lab page UI. All Python runs in js/py-worker.js (real CPython on Pyodide);
    this file draws the pictures, the editors and the checks, and grades. */
 'use strict';
+// Site root = the folder above js/, so homework pages in subfolders find shared files.
+const SITE = new URL('..', document.currentScript.src);
 const CFG = Object.assign({ pyodide: 'vendor/pyodide/', timeoutMs: 5000 }, window.LAB_CONFIG || {});
 const QS = window.LESSON.questions;
+const LESSON_ID = window.LESSON.id || 'lesson';
 
 /* ---------- small helpers ---------- */
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const store = {
-  get(k) { try { return localStorage.getItem('pylab:v1:' + k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem('pylab:v1:' + k, v); } catch (e) { /* private mode */ } },
+  get(k) { try { return localStorage.getItem(`pylab:v1:${LESSON_ID}:` + k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(`pylab:v1:${LESSON_ID}:` + k, v); } catch (e) { /* private mode */ } },
 };
 const plain = html => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent; };
 const S = {};
@@ -82,8 +85,8 @@ const Py = (() => {
     // Start the worker from a blob: URL so it inherits this page's Content-Security-Policy
     // (a worker loaded from its own file would get no policy on GitHub Pages).
     if (!workerSrc) {
-      const boot = { pyodide: new URL(CFG.pyodide, location.href).href, labkit: new URL('py/labkit.py', location.href).href };
-      const src = await (await fetch('js/py-worker.js')).text();
+      const boot = { pyodide: new URL(CFG.pyodide, SITE).href, labkit: new URL('py/labkit.py', SITE).href };
+      const src = await (await fetch(new URL('js/py-worker.js', SITE))).text();
       workerSrc = URL.createObjectURL(new Blob([`self.LAB_BOOT = ${JSON.stringify(boot)};\n`, src], { type: 'text/javascript' }));
     }
     worker = new Worker(workerSrc);
@@ -601,7 +604,7 @@ async function buildReport() {
   paintScores();
   const top = [
     '# ================================================================',
-    `# ${window.LESSON.title}: homework report`,
+    `# ${window.LESSON.title} · hand-in report`,
     `# Student: ${name}`,
     `# Made:    ${stamp}`,
     `# Score:   ${got} / ${max}${bonusMax ? `   bonus ${bonus} / ${bonusMax}` : ''}`,
@@ -704,7 +707,7 @@ $('#dl-report').addEventListener('click', async () => {
   const slug = nameEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'homework';
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([r], { type: 'text/plain;charset=utf-8' }));
-  a.download = `tuples-lists-${slug}.txt`;
+  a.download = `${LESSON_ID}-${slug}.txt`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   reportMsg('Downloaded. Attach the file to your assignment in Google Classroom.');

@@ -1,7 +1,7 @@
-"""Builds tuples-and-lists.ipynb (and an answer-key copy) for Google Colab.
+"""Builds hw5-tuples-and-lists.ipynb (and an answer-key copy) for Google Colab.
 
-    python3 build_notebook.py            -> tuples-and-lists.ipynb
-    python3 build_notebook.py --answers  -> tuples-and-lists-ANSWERS.ipynb
+    python3 build_notebook.py            -> hw5-tuples-and-lists.ipynb
+    python3 build_notebook.py --answers  -> hw5-tuples-and-lists-ANSWERS.ipynb
 
 Edit the CELLS list below, then rebuild. Each code cell marks the student's
 line with  ...  ; in the answer key that line is replaced by the answer.
@@ -45,7 +45,7 @@ print("Setup done ✓  Now scroll down to Q1.")
 # ("md", text) | ("code", source, answer_or_None)
 # In code cells, the line containing "...  # ←" is the student's line.
 CELLS = [
-    ("md", """# Tuples & Lists Lab
+    ("md", """# Homework 5: Tuples & Lists
 
 Two ways Python keeps things in a row:
 
@@ -252,7 +252,7 @@ def build(answers=False):
 
 if __name__ == "__main__":
     answers = "--answers" in sys.argv
-    name = "tuples-and-lists-ANSWERS.ipynb" if answers else "tuples-and-lists.ipynb"
+    name = "hw5-tuples-and-lists-ANSWERS.ipynb" if answers else "hw5-tuples-and-lists.ipynb"
     with open(name, "w") as f:
         json.dump(build(answers), f, indent=1, ensure_ascii=False)
     print("wrote", name)
