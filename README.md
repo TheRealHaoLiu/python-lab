@@ -5,7 +5,7 @@ Interactive Python homework for a middle-school class, live at
 
 | # | Homework | Page | Notebook |
 |---|---|---|---|
-| 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | `notebooks/hw5-tuples-and-lists.ipynb` |
+| 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | [Colab](https://colab.research.google.com/drive/1F3OSTM8XyNexynG4aKUC3kTzux_18rsO?usp=sharing) · source `notebooks/hw5-tuples-and-lists.ipynb` |
 
 | | What it is | Python |
 |---|---|---|
@@ -69,13 +69,12 @@ The lesson format is documented at the top of `lesson.js`. Some picture code in 
 
 * `hw5-tuples-and-lists.ipynb`: the student copy. Every task has a `...` to replace and an
   `assert` with a hint.
-* `hw5-tuples-and-lists-ANSWERS.ipynb`: the answer key, built locally and kept out of git
-  (`python3 build_notebook.py --answers`). Every cell passes.
-* `build_notebook.py`: edit the cells here, then run `python3 build_notebook.py` and
-  `python3 build_notebook.py --answers`.
+* `build_notebook.py`: edit the cells here, then run `python3 build_notebook.py`.
 
 In Google Classroom, create an assignment, attach the `.ipynb` from Drive and choose
 **Make a copy for each student**. Students open it with Colab. The **Summary** cell at the
 end re-checks everything without stopping at the first mistake, and the teacher can read the
 saved outputs without running anything. Some schools turn Colab off for younger students, so
 check with the teacher first.
+
+No answers are shown on the page or kept in this repo; the checks only say ✓ or "not yet".

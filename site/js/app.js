@@ -508,7 +508,7 @@ function buildTasks(q) {
     <p>${t.text} <span class="pts">${t.pts} pts</span></p>
     ${t.cell ? cellHTML(q, t, k) : ''}
     <div class="task-foot"><span class="st st-a">practice check</span><span class="st st-s">homework.py</span>
-    <div class="peek">${t.hint ? `<details><summary>Hint</summary><div>${t.hint}</div></details>` : ''}<details><summary>Answer</summary><pre>${hl(t.answer)}</pre></details></div></div>
+    <div class="peek">${t.hint ? `<details><summary>Hint</summary><div>${t.hint}</div></details>` : ''}</div></div>
   </div></li>`).join('');
   q.tasks.forEach((t, k) => {
     const pc = $(`[data-pc="${k}"]`, ol); if (!pc) return;
@@ -715,8 +715,5 @@ $('#dl-report').addEventListener('click', async () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   reportMsg('Downloaded. Attach the file to your assignment in Google Classroom.');
 });
-
-const key = QS.map(q => `# ===== ${q.id.toUpperCase()} =====\n${q.setup}\n` + q.tasks.map((t, i) => `# ${i + 1}.\n${t.answer}`).join('\n')).join('\n\n');
-$('#answer-key').innerHTML = hl(key + '\n\n# ----- expected output -----\n' + window.LESSON.expectedOutput.map(s => '# ' + s).join('\n'));
 
 Py.start();
