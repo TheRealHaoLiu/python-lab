@@ -218,7 +218,7 @@ const cmTheme = CM.EditorView.theme({
   '.cm-content': { caretColor: 'var(--code-ok)', padding: '10px 0' },
   '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--code-ok)', borderLeftWidth: '2px' },
   '&.cm-focused': { outline: 'none' },
-  '.cm-gutters': { backgroundColor: 'transparent', color: 'var(--code-dim)', border: 'none' },
+  '.cm-gutters': { backgroundColor: 'var(--code-bg)', color: 'var(--code-dim)', border: 'none' },  // solid, so code never shows through
   '.cm-lineNumbers .cm-gutterElement': { padding: '0 10px 0 12px' },
   '.cm-activeLine': { backgroundColor: 'var(--code-active)' },
   '.cm-activeLineGutter': { backgroundColor: 'transparent', color: 'var(--code-ink)' },
@@ -277,7 +277,7 @@ function codeEditor(q, parent, initial, { onChange, onRun }) {
       extensions: [
         CM.lineNumbers(), CM.highlightActiveLineGutter(), CM.highlightActiveLine(), CM.drawSelection(),
         CM.history(), CM.indentOnInput(), CM.bracketMatching(), CM.closeBrackets(),
-        CM.indentUnit.of('    '), CM.EditorState.tabSize.of(4),
+        CM.indentUnit.of('    '), CM.EditorState.tabSize.of(4), CM.EditorView.lineWrapping,
         CM.autocompletion({ activateOnTyping: true, icons: false }),
         pythonFor(q), cmColours, cmTheme,
         CM.Prec.highest(CM.keymap.of([
