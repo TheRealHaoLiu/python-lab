@@ -3,3 +3,6 @@
 editor-build/node_modules/
 .DS_Store
 __pycache__/
+
+# teacher's class materials pulled from Google Classroom (not ours to publish)
+class-materials/

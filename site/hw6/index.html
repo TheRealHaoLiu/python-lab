@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homework 6 · Dictionaries</title>
+<meta name="description" content="Python practice on dictionaries: clickable pictures, practice checks and a real Python editor.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 6</div>
+    <h1><span class="d">Dictionaries</span> Lab</h1>
+    <p class="lede">A list is a numbered shelf: you find things by their position. A dictionary is a sticker album with a label on every page: you find things by their label, called a <strong>key</strong>.</p>
+    <div class="idea">
+      <div class="kind-card is-list">
+        <h3><span class="glyph">[ ]</span> List: numbered</h3>
+        <div class="demo">books = ['Holes', 'Matilda']</div>
+        <ul>
+          <li>Find by position: <code>books[0]</code></li>
+          <li>Add to the end: <code>books.append('Wonder')</code></li>
+          <li>Remove by position: <code>del books[1]</code></li>
+        </ul>
+      </div>
+      <div class="kind-card is-dict">
+        <h3><span class="glyph">{ }</span> Dictionary: labelled</h3>
+        <div class="demo">pets = {'Kai': 'lizard', 'Mo': 'frog'}</div>
+        <ul>
+          <li>Look up by key: <code>pets['Kai']</code></li>
+          <li>Change or add: <code>pets['Mo'] = 'toad'</code></li>
+          <li>Remove by key: <code>del pets['Kai']</code></li>
+          <li>Count entries: <code>len(pets)</code></li>
+          <li>No positions: <code>pets[0]</code> is a <strong>KeyError</strong>.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Poke the picture to see what each key gives you.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="dict">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Class Pet Registry</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">A teacher keeps track of each student's class pet in a <strong>dictionary</strong>. The <strong>key</strong> is the student's name, and the <strong>value</strong> is their pet.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge" data-badge="q1"></span></div>
+      <div class="row-wrap"><div class="var-name">class_pets =</div><span class="brk" data-open="q1">{</span><div class="row" data-row="q1"></div><span class="brk" data-close="q1">}</span></div>
+      <p class="tip">Click a name tag to look it up, for example <code>class_pets['Leo']</code>. There are no index numbers: a dictionary finds things by key.</p>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="class_pets['Leo'] = 'shark'">class_pets['Leo'] = 'shark'</button>
+        <button type="button" class="btn" data-run="q1" data-code="class_pets['Kai'] = 'lizard'">class_pets['Kai'] = 'lizard'</button>
+        <button type="button" class="btn" data-run="q1" data-code="del class_pets['Zoe']">del class_pets['Zoe']</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="class_pets[0]">Try: class_pets[0]</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">The same <code>=</code> does two jobs. If the key is already there (Leo), it <b>changes</b> the value. If the key is new (Kai), it <b>adds</b> a new entry at the end.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: class_pets['Zoe']" data-label="Python shell for class_pets"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="dict">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Book Shelf vs. Sticker Album</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">A student has two collections. <code>books</code> is a <strong>list</strong>: items stored by position. <code>stickers</code> is a <strong>dictionary</strong>: each sticker name is a <strong>key</strong>, and the number owned is the <strong>value</strong>.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="pair">
+        <div class="row-wrap"><div class="var-name">books = <span class="badge" data-badge="q2"></span></div><span class="brk" data-open="q2">[</span><div class="row" data-row="q2"></div><span class="brk" data-close="q2">]</span></div>
+        <div class="row-wrap"><div class="var-name">stickers = <span class="badge" data-badge="q2:stickers"></span></div><span class="brk" data-open="q2:stickers">{</span><div class="row" data-row="q2:stickers"></div><span class="brk" data-close="q2:stickers">}</span></div>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="books[2]">books[2]</button>
+        <button type="button" class="btn" data-run="q2" data-code="stickers['dragon']">stickers['dragon']</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="books['The Hobbit']">Try: books['The Hobbit']</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="stickers[0]">Try: stickers[0]</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">A list answers to a position number. A dictionary answers to a key. Ask either one the wrong way and Python stops with an error.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: books[-1]" data-label="Python shell for books and stickers"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="dict">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Team Rosters</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">Dictionaries can store <strong>lists</strong> as values! Each team's colour is a key, and its value is the list of players on that team.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge" data-badge="q3"></span></div>
+      <div class="row-wrap"><div class="var-name">teams =</div><span class="brk" data-open="q3">{</span><div class="row" data-row="q3"></div><span class="brk" data-close="q3">}</span></div>
+      <p class="tip">Click a team's tag to get its whole list. Click a player to get one name, like <code>teams['red'][1]</code>. Two sets of brackets, like the treasure map: the first picks the team by its key, the second picks a player by position in that team's list.</p>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="teams['red']">teams['red']</button>
+        <button type="button" class="btn" data-run="q3" data-code="len(teams['blue'])">len(teams['blue'])</button>
+        <button type="button" class="btn" data-run="q3" data-code="teams['blue'][-1]">teams['blue'][-1]</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: teams['red'][0]" data-label="Python shell for teams"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first, so you get the latest results.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached. A script that runs longer than 5 seconds is stopped, so a loop that never ends can't freeze the page.</p>
+    <ul>
+      <li>Each task has two checks. The <strong>practice check</strong> is a one-line Python box under each task: the student types code, sees what it prints, and a hidden <code>assert</code> marks it ✓ or "not yet" without showing the answer. The <strong>homework.py</strong> check is the graded one: the script has to print the right thing, using the key (or index) rather than typing the answer.</li>
+      <li>The hand-in report is a <code>.txt</code> file: the score and every check at the top, then the student's scripts and what they printed. To re-run a script, paste it into a <code>homework.py</code> editor on this page, where it runs sandboxed in the browser. Please don't run students' code with Python on your own computer.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt.</li>
+      <li>Q2 task 6 is a written answer. The page only checks that it mentions the error; grading the explanation is up to you. The posted code names the first dictionary <code>pythonsports</code> but prints <code>sports</code>; this page calls it <code>sports</code> throughout.</li>
+      <li>Bonus task 1 asks for a guess. The practice box checks the guess; homework.py gets the points when it prints the value with <code>teams['blue'][0]</code>.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>

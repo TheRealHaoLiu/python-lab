@@ -8,6 +8,7 @@ const BUILD = new URL(document.currentScript.src).searchParams.get('v') || 'dev'
 const withBuild = u => { const x = new URL(u, SITE); x.searchParams.set('v', BUILD); return x.href; };
 const CFG = Object.assign({ pyodide: 'vendor/pyodide/', timeoutMs: 5000 }, window.LAB_CONFIG || {});
 const QS = window.LESSON.questions;
+QS.forEach(q => { q.vars = q.vars || [q.var]; });  // the variables a question draws; q.var is the main one
 const LESSON_ID = window.LESSON.id || 'lesson';
 
 /* ---------- small helpers ---------- */
@@ -34,6 +35,7 @@ function repr(v) {
   }
   if (v.t === 'tuple') return v.items.length === 1 ? '(' + repr(v.items[0]) + ',)' : '(' + v.items.map(repr).join(', ') + ')';
   if (v.t === 'list') return '[' + v.items.map(repr).join(', ') + ']';
+  if (v.t === 'dict') return '{' + v.items.map(([k, x]) => repr(k) + ': ' + repr(x)).join(', ') + '}';
   if (v.t === 'other') return v.r;
   return String(v);
 }
@@ -57,6 +59,7 @@ const BUILTIN_SET = new Set(PY_BUILTINS);
 const METHODS = {
   list: ['append', 'clear', 'copy', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse', 'sort'],
   tuple: ['count', 'index'],
+  dict: ['clear', 'copy', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values'],
   str: ['capitalize', 'count', 'endswith', 'find', 'join', 'lower', 'replace', 'split', 'startswith', 'strip', 'title', 'upper'],
 };
 function hl(src) {
@@ -122,36 +125,63 @@ const Py = (() => {
 const failText = e => e && (e.timeout || e.fatal) ? e.message : 'Python could not run this: ' + (e && e.message || e);
 
 /* ---------- picture ---------- */
-function renderRow(q, h) {
-  const st = S[q.id], row = $(`[data-row="${q.id}"]`), v = st.value;
-  const kind = v && v.t === 'list' ? 'list' : 'tuple';
-  $(`[data-open="${q.id}"]`).textContent = kind === 'list' ? '[' : '(';
-  $(`[data-close="${q.id}"]`).textContent = kind === 'list' ? ']' : ')';
-  const bench = row.closest('.bench');
-  bench.style.setProperty('--kind', `var(--${kind})`); bench.style.setProperty('--kind-soft', `var(--${kind}-soft)`);
-  $(`[data-badge="${q.id}"]`).textContent = !v || !v.items ? '' : kind === 'list' ? `list · ${v.items.length} items · can change` : `tuple · ${v.items.length} items · sealed`;
-  row.className = 'row ' + (kind === 'list' ? 'is-list' : 'is-tuple');
+const BRK = { list: '[]', tuple: '()', dict: '{}' };
+// The main variable's picture is data-row="q1"; any other variable's is data-row="q1:name".
+const rowKey = (q, name) => name === q.var ? q.id : `${q.id}:${name}`;
+function initVals(q) {
+  const r = q.init(), m = q.vars.length > 1 ? r : { [q.var]: r };
+  return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { exists: true, value: v }]));
+}
+const valOf = (q, name = q.var) => { const c = S[q.id].vals[name]; return c ? c.value : null; };
+function renderPicture(q, h) {
+  const mine = name => h && (h.var || q.var) === name ? h : null;
+  q.vars.forEach(name => renderRow(q, name, mine(name)));
+  if ($(`[data-map="${q.id}"]`)) renderMap(q, mine(q.var));
+}
+function renderRow(q, name, h) {
+  const key = rowKey(q, name), row = $(`[data-row="${key}"]`); if (!row) return;
+  const cur = S[q.id].vals[name] || { exists: false, value: null }, v = cur.value;
+  const kind = v && BRK[v.t] ? v.t : 'tuple';
+  $(`[data-open="${key}"]`).textContent = BRK[kind][0];
+  $(`[data-close="${key}"]`).textContent = BRK[kind][1];
+  // One picture tints its whole bench; with two, each picture keeps its own colour.
+  const tint = q.vars.length > 1 ? row.closest('.row-wrap') : row.closest('.bench');
+  tint.style.setProperty('--kind', `var(--${kind})`); tint.style.setProperty('--kind-soft', `var(--${kind}-soft)`);
+  const badge = $(`[data-badge="${key}"]`), n = v && v.items ? v.items.length : 0;
+  if (badge) badge.textContent = !v || !v.items ? '' : kind === 'dict' ? `dict · ${n} key${n === 1 ? '' : 's'} · can change` : kind === 'list' ? `list · ${n} items · can change` : `tuple · ${n} items · sealed`;
+  row.className = 'row is-' + kind;
+  // a dictionary is drawn like its code: one entry per line between { and }
+  row.closest('.row-wrap').classList.toggle('is-dict', kind === 'dict');
   if (!v || !v.items) {
     row.style.setProperty('--n', 1);
-    row.innerHTML = `<div class="row-empty">${esc(q.var)} is now ${esc(st.exists ? repr(v) : 'deleted')}. Press “Reset picture”.</div>`;
-    if (q.id === 'q2') renderMap(q, null);
+    row.innerHTML = `<div class="row-empty">${esc(name)} is now ${esc(cur.exists ? repr(v) : 'deleted')}. Press “Reset picture”.</div>`;
     return;
   }
-  const n = v.items.length; row.style.setProperty('--n', Math.max(n, 1));
+  row.style.setProperty('--n', Math.max(n, 1));
   if (!n) { row.innerHTML = '<div class="row-empty">empty</div>'; return; }
-  row.innerHTML = v.items.map((it, i) => {
+  row.innerHTML = kind === 'dict' ? dictCells(name, v) : v.items.map((it, i) => {
     const nested = it && it.items;
-    const ix = nested ? `<button type="button" class="ix" data-i="${i}" aria-label="${q.var}[${i}]">${i}</button>` : `<span class="ix">${i}</span>`;
+    const ix = nested ? `<button type="button" class="ix" data-i="${i}" aria-label="${name}[${i}]">${i}</button>` : `<span class="ix">${i}</span>`;
     const box = nested
-      ? `<div class="box nested">(${it.items.map((x, j) => `<button type="button" class="mini" data-i="${i}" data-j="${j}" aria-label="${q.var}[${i}][${j}]">${esc(display(x))}</button>`).join(', ')}${it.items.length === 1 ? ',' : ''})</div>`
+      ? `<div class="box nested">(${it.items.map((x, j) => `<button type="button" class="mini" data-i="${i}" data-j="${j}" aria-label="${name}[${i}][${j}]">${esc(display(x))}</button>`).join(', ')}${it.items.length === 1 ? ',' : ''})</div>`
       : `<button type="button" class="box" data-i="${i}">${esc(display(it))}</button>`;
     return `<div class="cell" data-cell="${i}">${ix}${box}<span class="nix">${i - n}</span></div>`;
   }).join('');
   if (h) applyHL(q, h);
-  if (q.id === 'q2') renderMap(q, h);
+}
+/* A dictionary: a name tag (the key) next to each value, and no index numbers. */
+function dictCells(name, v) {
+  return v.items.map(([k, x], i) => {
+    const kr = esc(repr(k)), seq = x && x.items && x.t !== 'dict';
+    const val = seq
+      ? `<div class="box nested">${BRK[x.t][0]}${x.items.map((y, j) => `<button type="button" class="mini" data-i="${i}" data-j="${j}" aria-label="${esc(name)}[${kr}][${j}]">${esc(display(y))}</button>`).join(', ')}${BRK[x.t][1]}</div>`
+      : `<button type="button" class="box" data-i="${i}" aria-label="${esc(name)}[${kr}]">${esc(display(x))}</button>`;
+    return `<div class="cell kv" data-cell="${i}"><button type="button" class="key" data-i="${i}" aria-label="${esc(name)}[${kr}]">${kr}</button><span class="colon" aria-hidden="true">:</span>${val}</div>`;
+  }).join('');
 }
 function applyHL(q, h) {
-  const row = $(`[data-row="${q.id}"]`), cells = $$('.cell', row);
+  const row = $(`[data-row="${rowKey(q, h && h.var || q.var)}"]`); if (!row) return;
+  const cells = $$('.cell', row);
   row.classList.toggle('slicing', !!(h && h.slice));
   cells.forEach(c => c.classList.remove('hl', 'fence-before', 'fence-after', 'shake', 'pop', 'slide'));
   $$('.mini', row).forEach(m => m.classList.remove('hl'));
@@ -162,7 +192,7 @@ function applyHL(q, h) {
   if (h.slice && h.fence != null) { if (h.fence < cells.length) cells[h.fence].classList.add('fence-before'); else if (cells.length) cells[cells.length - 1].classList.add('fence-after'); }
 }
 function renderMap(q, h) {
-  const svg = $(`[data-map="${q.id}"]`), v = S[q.id].value, O = 24, G = 20, B = O + 10 * G;
+  const svg = $(`[data-map="${q.id}"]`), v = valOf(q), O = 24, G = 20, B = O + 10 * G;
   const X = x => O + x * G, Y = y => B - y * G, isInt = x => Number.isInteger(x);
   let s = '';
   for (let k = 0; k <= 10; k++) s += `<line class="g" x1="${X(k)}" y1="${O}" x2="${X(k)}" y2="${B}"/><line class="g" x1="${O}" y1="${Y(k)}" x2="${X(10)}" y2="${Y(k)}"/>`;
@@ -186,11 +216,11 @@ async function shellRun(q, code, opts = {}) {
   const st = S[q.id]; code = code.trim(); if (!code) return null;
   if (opts.history !== false) { st.hist.push(code); st.hp = st.hist.length; }
   let r;
-  try { r = await Py.call('shell', { qid: q.id, src: code, var: q.var, setup: q.setup }); }
+  try { r = await Py.call('shell', { qid: q.id, src: code, var: q.var, vars: q.vars, setup: q.setup }); }
   catch (e) { logShell(q, { code, lines: [['err', failText(e)]] }); return null; }
   logShell(q, { code, lines: r.lines });
-  st.value = r.state.value; st.exists = r.state.exists;
-  renderRow(q, r.hl);
+  st.vals = r.state;
+  renderPicture(q, r.hl);
   return r;
 }
 function logShell(q, entry) {
@@ -204,19 +234,19 @@ function logShell(q, entry) {
 async function resetPicture(q, silent) {
   const st = S[q.id];
   try {
-    const r = await Py.call('shell', { qid: q.id, src: '', var: q.var, setup: q.setup, reset: true });
-    st.value = r.state.value; st.exists = r.state.exists;
-  } catch (e) { st.value = q.init(); st.exists = true; }
-  renderRow(q, null);
+    const r = await Py.call('shell', { qid: q.id, src: '', var: q.var, vars: q.vars, setup: q.setup, reset: true });
+    st.vals = r.state;
+  } catch (e) { st.vals = initVals(q); }
+  renderPicture(q, null);
   if (q.id === 'q1') updSlice();
   if (!silent) logShell(q, { code: q.setup, lines: [['note', 'picture reset']] });
 }
 
 /* ---------- code editors (CodeMirror 6, vendor/codemirror.js) ---------- */
 function kindOf(q, name, text) {
-  if (name === q.var) return (S[q.id].value && S[q.id].value.t) || q.init().t;
-  const m = new RegExp('^\\s*' + name + '\\s*=\\s*([\\[\\(\'"])', 'm').exec(text || '');
-  return m ? (m[1] === '[' ? 'list' : m[1] === '(' ? 'tuple' : 'str') : null;
+  if (q.vars.includes(name)) { const v = valOf(q, name) || initVals(q)[name].value; return v && BRK[v.t] ? v.t : null; }
+  const m = new RegExp('^\\s*' + name + '\\s*=\\s*([\\[\\(\\{\'"])', 'm').exec(text || '');
+  return m ? ({ '[': 'list', '(': 'tuple', '{': 'dict' }[m[1]] || 'str') : null;
 }
 const cmTheme = CM.EditorView.theme({
   '&': { color: 'var(--code-ink)', backgroundColor: 'transparent', fontSize: '14px' },
@@ -246,7 +276,7 @@ const cmColours = CM.syntaxHighlighting(CM.HighlightStyle.define([
   { tag: [T_.function(T_.variableName), T_.function(T_.propertyName), T_.standard(T_.variableName), T_.propertyName], color: 'var(--code-fn)' },
 ]));
 /* Lesson-aware suggestions on top of CodeMirror's Python ones: the question's
-   variable, and the real methods of a list/tuple/str after a dot. */
+   variables, and the real methods of a list/tuple/dict/str after a dot. */
 function labCompletions(q) {
   return ctx => {
     const doc = ctx.state.doc.toString();
@@ -258,7 +288,7 @@ function labCompletions(q) {
     }
     const w = ctx.matchBefore(/[A-Za-z_]\w*/);
     if (!w && !ctx.explicit) return null;
-    return { from: w ? w.from : ctx.pos, options: [{ label: q.var, type: 'variable', detail: (S[q.id].value && S[q.id].value.t) || '', boost: 10 }], validFor: /^\w*$/ };
+    return { from: w ? w.from : ctx.pos, options: q.vars.map(v => ({ label: v, type: 'variable', detail: (valOf(q, v) && valOf(q, v).t) || '', boost: 10 })), validFor: /^\w*$/ };
   };
 }
 /* Tab: take the open suggestion; otherwise ask for suggestions after a word. */
@@ -381,7 +411,7 @@ async function runAll(q) {
   const st = S[q.id]; st.stepping = false;
   st.body.innerHTML = `<div class="c-note">${Py.ready ? 'running…' : 'waiting for Python to start…'}</div>`;
   let r;
-  try { r = await Py.call('run', { src: st.ta.value, var: q.var }); }
+  try { r = await Py.call('run', { src: st.ta.value, var: q.var, vars: q.vars }); }
   catch (e) { st.body.innerHTML = `<div class="c-err">${esc(failText(e))}</div>`; return; }
   let h;
   if (r.syntax) h = errHTML(r.syntax) + '<div class="c-note">Python checks the whole file before running it, so nothing ran.</div>';
@@ -391,17 +421,19 @@ async function runAll(q) {
   }
   st.body.innerHTML = h; st.body.scrollTop = 0;
   grade(q, r);
-  if (q.id === 'q3' && r.final_repr && r.final && r.final.t === 'list') {
-    const s = await Py.call('shell', { qid: q.id, src: `${q.var} = ${r.final_repr}`, var: q.var, setup: q.setup });
-    st.value = s.state.value; st.exists = s.state.exists; renderRow(q, null);
-    logShell(q, { code: '# picture now shows order at the end of homework.py', lines: [['out', r.final_repr]] });
+  // syncPicture: after a run, the picture shows the variables as the script left them.
+  const names = q.syncPicture && r.finals ? q.vars.filter(v => r.finals[v] && BRK[r.finals[v].t]) : [];
+  if (names.length) {
+    const s = await Py.call('shell', { qid: q.id, src: names.map(v => `${v} = ${r.final_reprs[v]}`).join('\n'), var: q.var, vars: q.vars, setup: q.setup });
+    st.vals = s.state; renderPicture(q, null);
+    logShell(q, { code: `# picture now shows ${names.join(' and ')} at the end of homework.py`, lines: names.map(v => ['out', r.final_reprs[v]]) });
   }
 }
 async function stepOne(q) {
   const st = S[q.id], restart = !st.stepping;
   if (restart) st.stepHTML = '';
   let r;
-  try { r = await Py.call('step', { qid: q.id, src: st.ta.value, var: q.var, restart }); }
+  try { r = await Py.call('step', { qid: q.id, src: st.ta.value, var: q.var, vars: q.vars, restart }); }
   catch (e) { st.body.innerHTML = `<div class="c-err">${esc(failText(e))}</div>`; st.stepping = false; return; }
   if (r.syntax) { st.body.innerHTML = errHTML(r.syntax); st.stepping = false; return; }
   if (r.entry) st.stepHTML += entryHTML(q, r.entry);
@@ -419,11 +451,15 @@ function gradeCore(q, res, raw) {
   const code = raw.split('\n').map(stripComment).join('\n');
   const starterComments = new Set(q.starter.split('\n').map(commentText).filter(Boolean));
   const outputs = res.outputs || [];
+  const fin = name => (res.finals || {})[name];
   const ctx = {
     code,
     printed: s => outputs.includes(s),
     printedAny: a => a.some(s => outputs.includes(s)),
     final: f => { const o = res.final; return !!(o && o.items && f(o.items)); },
+    // a variable as the script left it: dict(name) -> {key: value}, list(name) -> [items]; null if it isn't one
+    dict: name => { const o = fin(name); return o && o.t === 'dict' ? Object.fromEntries(o.items.map(([k, x]) => [display(k), x])) : null; },
+    list: name => { const o = fin(name); return o && o.t === 'list' ? o.items : null; },
     explained: () => WHY_RE.test(raw.split('\n').map(commentText).filter(t => t && !starterComments.has(t)).join(' ').toLowerCase()),
   };
   return q.tasks.map(t => { try { return !!t.check(ctx); } catch (e) { return false; } });
@@ -437,13 +473,16 @@ function grade(q, res) {
 /* ---------- assert practice cells ---------- */
 function cellHTML(q, t, k) {
   const c = t.cell, id = `${q.id}-c${k}`;
-  if (c.why) return `<div class="pc" data-pc="${k}">
-    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><span class="code">${hl(c.tryCode)}</span><button type="button" class="pc-btn" data-try>Run it</button></div>
-    <div class="pc-res" data-try-res></div>
-    <label class="pc-label" for="${id}"><span class="h-c"># Why? Explain in your own words:</span></label>
-    <textarea class="pc-why" id="${id}" rows="3" spellcheck="true" placeholder="Python stops because…"></textarea>
+  if (c.why) {
+    const tryIt = `<div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><span class="code">${hl(c.tryCode)}</span><button type="button" class="pc-btn" data-try>Run it</button></div>
+    <div class="pc-res" data-try-res></div>`;
+    const write = `<label class="pc-label" for="${id}"><span class="h-c">${esc(c.label || '# Why? Explain in your own words:')}</span></label>
+    <textarea class="pc-why" id="${id}" rows="${c.rows || 3}" spellcheck="true" placeholder="${esc(c.ph || 'Python stops because…')}"></textarea>
     <div class="pc-line"><button type="button" class="pc-btn" data-check>Check</button><button type="button" class="pc-btn" data-addscript>Add to homework.py</button></div>
-    <div class="pc-res" data-res></div></div>`;
+    <div class="pc-res" data-res></div>`;
+    // A guess (c.ok) is written before running the line; an explanation comes after.
+    return `<div class="pc" data-pc="${k}">${c.ok ? write + tryIt : tryIt + write}</div>`;
+  }
   if (c.stmt) return `<div class="pc" data-pc="${k}">
     <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="type a line of Python" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
     <div class="pc-res" data-res></div></div>`;
@@ -452,7 +491,7 @@ function cellHTML(q, t, k) {
     <div class="pc-res" data-res></div></div>`;
 }
 function cellSpecs(q) {
-  const st = S[q.id], varRe = new RegExp('\\b' + q.var + '\\b');
+  const st = S[q.id], varRe = new RegExp('\\b(' + q.vars.join('|') + ')\\b');
   return q.tasks.map((t, k) => {
     const c = t.cell; if (!c || c.why) return { kind: null };
     const input = (st.inputs[k] || '').trim();
@@ -464,9 +503,10 @@ function composeCell(q, t, k, r) {
   const input = (S[q.id].inputs[k] || '').trim();
   if (c.why) {
     if (!input) return { state: 'empty', lines: [] };
-    return input.length >= 15 && WHY_RE.test(input.toLowerCase())
-      ? { state: 'pass', lines: [['ok', '✓ answered. Your teacher grades the explanation.']] }
-      : { state: 'fail', lines: [['note', 'Say what Python does (the error) and why tuples behave that way.']] };
+    const ok = c.ok ? c.ok.test(input) : input.length >= 15 && WHY_RE.test(input.toLowerCase());
+    return ok
+      ? { state: 'pass', lines: [['ok', c.okMsg || '✓ answered. Your teacher grades the explanation.']] }
+      : { state: 'fail', lines: [['note', c.whyHint || 'Say what Python does (the error) and why tuples behave that way.']] };
   }
   if (!r) return null;
   const P = (r.printed || []).map(p => ['out', p]);
@@ -475,7 +515,8 @@ function composeCell(q, t, k, r) {
   if (r.state === 'skip') return { state: 'fail', lines: [['note', `Use ${q.var} to get there. Typing the answer in directly doesn't count.`]] };
   if (r.not_expr) return { state: 'fail', lines: [['note', `For this task, show a value: for example print(${q.var}[0]) or just ${q.var}[0]. No = or del here.`]] };
   if (r.error) return { state: 'fail', lines: [...P, ['err', r.error]] };
-  const shown = c.stmt ? [...P, ['note', `${q.var} is now ${r.now}`]] : (r.shown || []).map(s => ['out', s]);
+  const nowVar = q.vars.find(v => new RegExp('\\b' + v + '\\b').test(input)) || q.var;
+  const shown = c.stmt ? [...P, ['note', `${nowVar} is now ${r.now[nowVar]}`]] : (r.shown || []).map(s => ['out', s]);
   if (r.assert_failed) return { state: 'fail', lines: [...shown, ['err', '✗ Not yet. Read the task again and compare.']] };
   if (c.must && !c.must[0].test(input)) return { state: 'fail', lines: [...shown, ['note', c.must[1]]] };
   return { state: 'pass', lines: [...shown, ['ok', '✓ passed']] };
@@ -484,7 +525,7 @@ async function checkCells(q) {
   const st = S[q.id];
   store.set(q.id + ':cells', JSON.stringify(st.inputs));
   let res;
-  try { res = await Py.call('cells', { setup: q.setup, var: q.var, specs: cellSpecs(q) }); }
+  try { res = await Py.call('cells', { setup: q.setup, var: q.var, vars: q.vars, specs: cellSpecs(q) }); }
   catch (e) { res = q.tasks.map(() => ({ state: 'fail', error: failText(e) })); }
   st.cells = q.tasks.map((t, k) => composeCell(q, t, k, res[k]));
   q.tasks.forEach((t, k) => {
@@ -496,7 +537,7 @@ async function checkCells(q) {
 function addWhyToScript(q, k) {
   const st = S[q.id], text = (st.inputs[k] || '').trim(); if (!text) return;
   const lines = text.split(/\n/).map(l => '# ' + l.trim()).join('\n');
-  const ta = st.ta, anchor = '#    What happens? Why? Write your answer as comments below.';
+  const ta = st.ta, anchor = q.tasks[k].cell.anchor || '#    What happens? Why? Write your answer as comments below.';
   const at = ta.value.indexOf(anchor);
   ta.value = at >= 0 ? ta.value.slice(0, at + anchor.length) + '\n' + lines + ta.value.slice(at + anchor.length) : ta.value.replace(/\s*$/, '') + '\n' + lines + '\n';
   ta.dispatchEvent(new Event('input'));
@@ -520,10 +561,10 @@ function buildTasks(q) {
     const tryBtn = $('[data-try]', pc);
     if (tryBtn) tryBtn.addEventListener('click', async () => {
       const r = await shellRun(q, t.cell.tryCode, { history: false });
-      const err = r && r.lines.find(l => l[0] === 'err');
+      const err = r && r.lines.find(l => l[0] === 'err'), out = r ? r.lines.filter(l => l[0] === 'out') : [];
       $('[data-try-res]', pc).innerHTML = err
         ? `<div class="s-err">${esc('Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\n' + err[1])}</div>`
-        : '<div class="s-ok">(no error)</div>';
+        : out.length ? out.map(l => `<div class="s-out">${esc(l[1])}</div>`).join('') : '<div class="s-ok">(no error)</div>';
     });
     const addBtn = $('[data-addscript]', pc);
     if (addBtn) addBtn.addEventListener('click', () => { addWhyToScript(q, k); addBtn.textContent = 'Added ✓'; setTimeout(() => addBtn.textContent = 'Add to homework.py', 1500); });
@@ -585,7 +626,7 @@ async function buildReport() {
   for (const q of QS) {
     const src = S[q.id].ta.value.replace(/\r\n?/g, '\n');
     let res;
-    try { res = await Py.call('run', { src, var: q.var }); }
+    try { res = await Py.call('run', { src, var: q.var, vars: q.vars }); }
     catch (e) { res = { entries: [{ error: failText(e) }], outputs: [], final: null }; }
     S[q.id].done = gradeCore(q, res, src); store.set(q.id + ':done', JSON.stringify(S[q.id].done)); paintTasks(q);
     const t = tally(q);
@@ -626,10 +667,11 @@ async function refreshPreview() {
   catch (e) { reportMsg(failText(e), true); return null; }
 }
 
-/* ---------- Q1 slice explorer ---------- */
+/* ---------- Q1 slice explorer (pages that have one) ---------- */
 let sliceTimer = null;
 function updSlice() {
-  const v = S.q1 && S.q1.value; if (!v || !v.items) return;
+  if (!$('#q1-start')) return;
+  const v = S.q1 && valOf(QS[0]); if (!v || !v.items) return;
   const n = v.items.length, a = +$('#q1-start').value, b = +$('#q1-stop').value;
   $('#q1-start').max = n; $('#q1-stop').max = n;
   $('#q1-start-o').textContent = a; $('#q1-stop-o').textContent = b;
@@ -661,14 +703,18 @@ Py.on((state, d) => {
 });
 
 QS.forEach(q => {
-  S[q.id] = { value: q.init(), exists: true, hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
-  renderRow(q, null); buildEditor(q); buildTasks(q); paintTasks(q);
-  $(`[data-row="${q.id}"]`).addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    const v = S[q.id].value; if (!v || !v.items) return;
-    const i = +b.dataset.i, ii = S[q.id].neg ? i - v.items.length : i;
-    if (b.classList.contains('mini')) shellRun(q, `${q.var}[${i}][${b.dataset.j}]`);
-    else shellRun(q, `${q.var}[${ii}]`);
+  S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q);
+  q.vars.forEach(name => {
+    const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
+    row.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const v = valOf(q, name); if (!v || !v.items) return;
+      const i = +b.dataset.i, mini = b.classList.contains('mini');
+      if (v.t === 'dict') { const k = repr(v.items[i][0]); shellRun(q, mini ? `${name}[${k}][${b.dataset.j}]` : `${name}[${k}]`); return; }
+      const ii = S[q.id].neg ? i - v.items.length : i;
+      shellRun(q, mini ? `${name}[${i}][${b.dataset.j}]` : `${name}[${ii}]`);
+    });
   });
   const sh = $(`[data-shell="${q.id}"]`), st = S[q.id];
   lineEditor(q, sh, {
@@ -682,10 +728,10 @@ QS.forEach(q => {
 });
 $$('[data-run]').forEach(b => b.addEventListener('click', () => shellRun(QS.find(q => q.id === b.dataset.run), b.dataset.code)));
 $$('[data-reset]').forEach(b => b.addEventListener('click', () => resetPicture(QS.find(q => q.id === b.dataset.reset))));
-[['#q1-front', false], ['#q1-back', true]].forEach(([sel, neg]) => $(sel).addEventListener('click', () => {
+if ($('#q1-front')) [['#q1-front', false], ['#q1-back', true]].forEach(([sel, neg]) => $(sel).addEventListener('click', () => {
   S.q1.neg = neg; $('#q1-front').setAttribute('aria-pressed', String(!neg)); $('#q1-back').setAttribute('aria-pressed', String(neg));
 }));
-$('#q1-start').addEventListener('input', updSlice); $('#q1-stop').addEventListener('input', updSlice);
+if ($('#q1-start')) { $('#q1-start').addEventListener('input', updSlice); $('#q1-stop').addEventListener('input', updSlice); }
 updSlice();
 paintScores();
 

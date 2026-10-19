@@ -87,7 +87,7 @@
         ],
       },
       {
-        id: 'q3', title: 'Pizza Party Orders', bonus: true, var: 'order', setup: 'order = ' + OR0,
+        id: 'q3', title: 'Pizza Party Orders', bonus: true, syncPicture: true, var: 'order', setup: 'order = ' + OR0,
         init: () => L(['cheese pizza', 'garlic bread', 'soda', 'salad', 'brownie']),
         starter: `order = ${OR0}
 

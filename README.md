@@ -5,6 +5,7 @@ Interactive Python homework for a middle-school class, live at
 
 | # | Homework | Page | Notebook |
 |---|---|---|---|
+| 6 | Dictionaries (class pets, book shelf vs. sticker album, team rosters) | [`hw6/`](https://therealhaoliu.github.io/python-lab/hw6/) | none |
 | 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | [Colab](https://colab.research.google.com/drive/1F3OSTM8XyNexynG4aKUC3kTzux_18rsO?usp=sharing) · source `notebooks/hw5-tuples-and-lists.ipynb` |
 
 | | What it is | Python |
@@ -22,6 +23,7 @@ site/
   index.html        landing page: list of homeworks
   hw5/index.html    Homework 5 page markup (pictures, sections)
   hw5/lesson.js     Homework 5 content: questions, tasks, hidden checks, grading rules
+  hw6/              Homework 6 (dictionaries), same layout
   css/lab.css       shared styles (light and dark)
   js/config.js      where Pyodide comes from, run timeout
   js/app.js         shared page behaviour: pictures, editors, checks, report
@@ -60,10 +62,12 @@ Python restarts, so `while True:` can't freeze the page.
 **Student data.** Code, check inputs, names and scores live in the student's own browser
 (`localStorage`). Nothing is sent anywhere. The hand-in report is a `.txt` file: score and checks at the top, then each script and what it printed.
 
-**Adding a homework.** Copy `site/hw5/` to `site/hwN/`, give `lesson.js` a new `id` (it
+**Adding a homework.** Copy `site/hw6/` to `site/hwN/`, give `lesson.js` a new `id` (it
 namespaces each student's saved work) and title, and add it to the list in `site/index.html`.
-The lesson format is documented at the top of `lesson.js`. Some picture code in `js/app.js`
-(slice explorer, treasure map, pizza sync) is still specific to Homework 5.
+The lesson format is documented at the top of `site/hw6/lesson.js`. Pictures can draw lists,
+tuples and dictionaries (including lists inside either), and a question can show more than
+one variable (`vars`). The slice explorer and treasure map in `js/app.js` switch on only
+when a page has their markup (Homework 5).
 
 ## The Colab notebook (`notebooks/`)
 

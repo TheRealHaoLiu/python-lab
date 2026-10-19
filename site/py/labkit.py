@@ -42,6 +42,8 @@ def simple(v, depth=0):
     if isinstance(v, (list, tuple)) and depth < 4 and len(v) <= 60:
         return {"t": "list" if isinstance(v, list) else "tuple",
                 "items": [simple(x, depth + 1) for x in v]}
+    if isinstance(v, dict) and depth < 4 and len(v) <= 60:
+        return {"t": "dict", "items": [[simple(k, depth + 1), simple(x, depth + 1)] for k, x in v.items()]}
     return {"t": "other", "r": repr(v)[:300]}
 
 
@@ -113,6 +115,9 @@ def silent(node):
 
 # ---------- which boxes did a line touch? ----------
 
+DRAWN = (list, tuple, dict)
+
+
 def _ev(node, ns):
     return eval(compile(ast.Expression(node), "<peek>", "eval"), dict(ns))
 
@@ -128,11 +133,34 @@ def _idx(node, ns, n):
     return k if 0 <= k < n else None
 
 
-def touched(e, ns, var):
+def _pos(node, ns, seq):
+    """Which box a subscript points at: the index for a list/tuple, the key's place for a dict."""
+    if isinstance(seq, dict):
+        try:
+            return list(seq).index(_ev(node, ns))
+        except Exception:
+            return None
+    return _idx(node, ns, len(seq))
+
+
+def _at(seq, i):
+    return list(seq.values())[i] if isinstance(seq, dict) else seq[i]
+
+
+def touched(e, ns, vars):
     if isinstance(e, ast.Call) and isinstance(e.func, ast.Name) and e.func.id == "print" and len(e.args) == 1:
         e = e.args[0]
+    for var in vars:
+        hl = _touched(e, ns, var)
+        if hl:
+            hl["var"] = var
+            return hl
+    return None
+
+
+def _touched(e, ns, var):
     seq = ns.get(var)
-    if not isinstance(seq, (list, tuple)):
+    if not isinstance(seq, DRAWN):
         return None
     n = len(seq)
 
@@ -141,6 +169,8 @@ def touched(e, ns, var):
 
     if isinstance(e, ast.Subscript) and is_var(e.value):
         if isinstance(e.slice, ast.Slice):
+            if isinstance(seq, dict):
+                return None
             s = e.slice
             try:
                 a, b, c = [None if x is None else _ev(x, ns) for x in (s.lower, s.upper, s.step)]
@@ -149,66 +179,99 @@ def touched(e, ns, var):
                 return None
             idxs = list(range(start, stop, step))
             return {"idxs": idxs, "slice": True, "fence": max(stop, start) if step == 1 else None}
-        k = _idx(e.slice, ns, n)
+        k = _pos(e.slice, ns, seq)
         return {"idxs": [k]} if k is not None else None
     if (isinstance(e, ast.Subscript) and isinstance(e.value, ast.Subscript)
             and is_var(e.value.value) and not isinstance(e.value.slice, ast.Slice)):
-        i = _idx(e.value.slice, ns, n)
+        i = _pos(e.value.slice, ns, seq)
         if i is None:
             return None
-        inner, j = seq[i], None
+        inner, j = _at(seq, i), None
         if isinstance(inner, (list, tuple)) and not isinstance(e.slice, ast.Slice):
             j = _idx(e.slice, ns, len(inner))
         return {"idxs": [i], "inner": j}
-    if isinstance(e, ast.Call) and isinstance(e.func, ast.Name) and e.func.id == "len" and len(e.args) == 1 and is_var(e.args[0]):
-        return {"idxs": list(range(n))}
+    if (isinstance(e, ast.Call) and isinstance(e.func, ast.Attribute) and e.func.attr == "get"
+            and is_var(e.func.value) and isinstance(seq, dict) and e.args):
+        k = _pos(e.args[0], ns, seq)
+        return {"idxs": [k]} if k is not None else None
+    if isinstance(e, ast.Call) and isinstance(e.func, ast.Name) and e.func.id == "len" and len(e.args) == 1:
+        if is_var(e.args[0]):
+            return {"idxs": list(range(n))}
+        a = e.args[0]
+        if isinstance(a, ast.Subscript) and is_var(a.value) and not isinstance(a.slice, ast.Slice):
+            k = _pos(a.slice, ns, seq)
+            return {"idxs": [k]} if k is not None else None
     return None
 
 
-def before_change(tree, ns, var):
+def before_change(tree, ns, vars):
     if len(tree.body) != 1:
         return None
-    st = tree.body[0]
+    for var in vars:
+        pre = _before(tree.body[0], ns, var)
+        if pre:
+            pre["var"] = var
+            return pre
+    return None
+
+
+def _before(st, ns, var):
     seq = ns.get(var)
-    if not isinstance(seq, (list, tuple)):
+    if not isinstance(seq, DRAWN):
         return None
-    if (isinstance(st, ast.Expr) and isinstance(st.value, ast.Call) and isinstance(st.value.func, ast.Attribute)
-            and isinstance(st.value.func.value, ast.Name) and st.value.func.value.id == var):
-        return {"kind": "method", "len": len(seq)}
+
+    def is_var(x):
+        return isinstance(x, ast.Name) and x.id == var
+
+    if isinstance(st, ast.Expr) and isinstance(st.value, ast.Call) and isinstance(st.value.func, ast.Attribute):
+        obj = st.value.func.value
+        if is_var(obj):
+            return {"kind": "method", "len": len(seq)}
+        # teams['red'].append('Zoe'): a method on the list inside one box
+        if isinstance(obj, ast.Subscript) and is_var(obj.value) and not isinstance(obj.slice, ast.Slice):
+            k = _pos(obj.slice, ns, seq)
+            if k is not None:
+                return {"kind": "inner", "idx": k}
+        return None
     if isinstance(st, ast.Assign) and len(st.targets) == 1:
         kind, tgt = "assign", st.targets[0]
+    elif isinstance(st, ast.AugAssign):
+        kind, tgt = "assign", st.target
     elif isinstance(st, ast.Delete) and len(st.targets) == 1:
         kind, tgt = "del", st.targets[0]
     else:
         return None
-    if (isinstance(tgt, ast.Subscript) and isinstance(tgt.value, ast.Name) and tgt.value.id == var
-            and not isinstance(tgt.slice, ast.Slice)):
-        k = _idx(tgt.slice, ns, len(seq))
-        if k is not None:
-            return {"kind": kind, "idx": k}
+    if not (isinstance(tgt, ast.Subscript) and is_var(tgt.value) and not isinstance(tgt.slice, ast.Slice)):
+        return None
+    k = _pos(tgt.slice, ns, seq)
+    if k is not None:
+        return {"kind": kind, "idx": k}
+    if isinstance(seq, dict) and kind == "assign":
+        return {"kind": "add"}  # a new key goes on the end
     return None
 
 
-def state(ns, var):
-    return {"exists": var in ns, "value": simple(ns[var]) if var in ns else None}
+def state(ns, vars):
+    return {v: {"exists": v in ns, "value": simple(ns[v]) if v in ns else None} for v in vars}
 
 
 # ---------- the >>> prompt under each picture ----------
 
-def shell(qid, src, var, setup, reset=False):
+def shell(qid, src, var, setup, reset=False, vars=None):
+    vars = vars or [var]
     if reset or qid not in SHELLS:
         SHELLS[qid] = new_ns(setup)
     ns = SHELLS[qid]
     src = src.strip()
     if not src:
-        return {"lines": [], "hl": None, "state": state(ns, var)}
+        return {"lines": [], "hl": None, "state": state(ns, vars)}
     register(SHELL, src)
     lines = []
     try:
         tree = ast.parse(src, SHELL)
     except SyntaxError as e:
-        return {"lines": [["err", last_line(e)]], "hl": None, "state": state(ns, var)}
-    pre = before_change(tree, ns, var)
+        return {"lines": [["err", last_line(e)]], "hl": None, "state": state(ns, vars)}
+    pre = before_change(tree, ns, vars)
     hl = None
     try:
         for node in tree.body:
@@ -224,22 +287,24 @@ def shell(qid, src, var, setup, reset=False):
             if isinstance(node, ast.Assert):
                 lines.append(["note", "assert passed"])
             if isinstance(node, ast.Expr):
-                hl = touched(node.value, ns, var) or hl
+                hl = touched(node.value, ns, vars) or hl
     except BaseException as e:  # noqa: BLE001 - show every error to the student
         lines += [["out", x] for x in cap.lines()]
         lines.append(["err", last_line(e)])
         if pre and "idx" in pre:
-            hl = {"idxs": [pre["idx"]], "fx": "shake"}
+            hl = {"var": pre["var"], "idxs": [pre["idx"]], "fx": "shake"}
     else:
-        if pre and pre["kind"] == "assign":
-            hl = {"idxs": [pre["idx"]], "fx": "pop"}
-        elif pre and pre["kind"] == "del":
-            hl = {"idxs": [], "from": pre["idx"]}
+        seq = ns.get(pre["var"]) if pre else None
+        if pre and pre["kind"] in ("assign", "inner"):
+            hl = {"var": pre["var"], "idxs": [pre["idx"]], "fx": "pop"}
+        elif pre and pre["kind"] == "add" and isinstance(seq, dict) and seq:
+            hl = {"var": pre["var"], "idxs": [len(seq) - 1], "fx": "pop"}
+        elif pre and pre["kind"] == "del" and isinstance(seq, list):
+            hl = {"var": pre["var"], "idxs": [], "from": pre["idx"]}
         elif pre and pre["kind"] == "method":
-            seq = ns.get(var)
-            if isinstance(seq, list) and len(seq) > pre["len"]:
-                hl = {"idxs": [len(seq) - 1], "fx": "pop"}
-    return {"lines": lines, "hl": hl, "state": state(ns, var)}
+            if isinstance(seq, (list, dict)) and len(seq) > pre["len"]:
+                hl = {"var": pre["var"], "idxs": [len(seq) - 1], "fx": "pop"}
+    return {"lines": lines, "hl": hl, "state": state(ns, vars)}
 
 
 # ---------- homework.py ----------
@@ -255,7 +320,12 @@ def _run_node(node, ns):
     return entry
 
 
-def run(src, var):
+def finals(ns, vars):
+    return ({v: simple(ns[v]) for v in vars if v in ns},
+            {v: repr(ns[v]) for v in vars if v in ns})
+
+
+def run(src, var, vars=None):
     register(SCRIPT, src)
     try:
         tree = ast.parse(src, SCRIPT)
@@ -270,12 +340,14 @@ def run(src, var):
         if "error" in entry:
             break
     final = ns.get(var)
+    vals, reprs = finals(ns, vars or [var])
     return {"entries": entries, "outputs": outputs[:MAX_LINES],
             "final": simple(final) if var in ns else None,
-            "final_repr": repr(final) if var in ns else None}
+            "final_repr": repr(final) if var in ns else None,
+            "finals": vals, "final_reprs": reprs}
 
 
-def step(qid, src, var, restart=False):
+def step(qid, src, var, restart=False, vars=None):
     st = STEPS.get(qid)
     if restart or st is None or st["src"] != src or st["done"]:
         register(SCRIPT, src)
@@ -287,7 +359,8 @@ def step(qid, src, var, restart=False):
         st = STEPS[qid] = {"src": src, "nodes": tree.body, "i": 0, "ns": new_ns(), "outputs": [], "done": False}
     if st["i"] >= len(st["nodes"]):
         st["done"] = True
-        return {"entry": None, "done": True, "outputs": st["outputs"], "final": simple(st["ns"].get(var)) if var in st["ns"] else None}
+        return {"entry": None, "done": True, "outputs": st["outputs"], "final": simple(st["ns"].get(var)) if var in st["ns"] else None,
+                "finals": finals(st["ns"], vars or [var])[0]}
     entry = _run_node(st["nodes"][st["i"]], st["ns"])
     st["i"] += 1
     st["outputs"] += entry["out"]
@@ -295,12 +368,14 @@ def step(qid, src, var, restart=False):
     nxt = None if st["done"] else st["nodes"][st["i"]].lineno
     ns = st["ns"]
     return {"entry": entry, "next": nxt, "done": st["done"], "errored": "error" in entry,
-            "outputs": st["outputs"], "final": simple(ns.get(var)) if var in ns else None}
+            "outputs": st["outputs"], "final": simple(ns.get(var)) if var in ns else None,
+            "finals": finals(ns, vars or [var])[0]}
 
 
 # ---------- assert practice cells ----------
 
-def cells(setup, var, specs):
+def cells(setup, var, specs, vars=None):
+    vars = vars or [var]
     ns = new_ns(setup)
     out, blocked = [], None
     for k, s in enumerate(specs):
@@ -336,7 +411,7 @@ def cells(setup, var, specs):
                     failed = a
                     break
             out.append({"state": "fail" if failed else "pass", "printed": cap.lines(),
-                        "assert_failed": bool(failed), "now": repr(ns.get(var))})
+                        "assert_failed": bool(failed), "now": {v: repr(ns.get(v)) for v in vars}})
             if failed:
                 blocked = k
             continue
