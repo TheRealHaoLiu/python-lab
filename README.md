@@ -5,6 +5,7 @@ Interactive Python homework for a middle-school class, live at
 
 | # | Homework | Page | Notebook |
 |---|---|---|---|
+| 7 | Flow Control (roller coaster height check, joke machine, secret word) | [`hw7/`](https://therealhaoliu.github.io/python-lab/hw7/) | none |
 | 6 | Dictionaries (class pets, book shelf vs. sticker album, team rosters) | [`hw6/`](https://therealhaoliu.github.io/python-lab/hw6/) | none |
 | 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | [Colab](https://colab.research.google.com/drive/1F3OSTM8XyNexynG4aKUC3kTzux_18rsO?usp=sharing) · source `notebooks/hw5-tuples-and-lists.ipynb` |
 
@@ -24,6 +25,7 @@ site/
   hw5/index.html    Homework 5 page markup (pictures, sections)
   hw5/lesson.js     Homework 5 content: questions, tasks, hidden checks, grading rules
   hw6/              Homework 6 (dictionaries), same layout
+  hw7/              Homework 7 (if/elif/else, and/or, None): slider pictures instead of boxes
   css/lab.css       shared styles (light and dark)
   js/config.js      where Pyodide comes from, run timeout
   js/app.js         shared page behaviour: pictures, editors, checks, report
@@ -55,6 +57,19 @@ scripts with Python on your own computer; paste them into the page instead.
 
 **Hosting.** Any static file server works (this repo deploys to GitHub Pages with
 `.github/workflows/pages.yml`). Serve `.wasm` as `application/wasm`.
+
+**input().** A page can't pause Python to wait for typing, so a question can set `ask`:
+homework.py gets an *input() answer* box next to Run, and each `input()` takes the next answer
+(comma-separated), echoed after the prompt like a terminal. With no answer left, `input()` raises
+`EOFError`, as Python does with no keyboard.
+
+**Grading if statements.** A question with `probe: {var, values}` has every top-level `if`
+statement in homework.py run on its own once per value (`labkit.branches`). Checks then ask
+"does some `if` print X for exactly the right values", so `>` vs `>=` and `age == 10 or 11`
+fail, and a later `height = 130` can't mask an earlier condition. A task's check sees only the
+`if` statements under its own starter heading (`under: [n, …]` widens that), so one task's
+code can't pass another. The practice box for such a task (`cell: {prog}`) takes the task's
+code itself and runs it once per value, naming the first value where the output is wrong.
 
 **Runaway code.** Each run is stopped after `timeoutMs` (5 s). The worker is killed and
 Python restarts, so `while True:` can't freeze the page.

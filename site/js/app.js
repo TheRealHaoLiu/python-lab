@@ -135,8 +135,18 @@ function initVals(q) {
 const valOf = (q, name = q.var) => { const c = S[q.id].vals[name]; return c ? c.value : null; };
 function renderPicture(q, h) {
   const mine = name => h && (h.var || q.var) === name ? h : null;
-  q.vars.forEach(name => renderRow(q, name, mine(name)));
+  q.vars.forEach(name => { renderRow(q, name, mine(name)); renderVal(q, name); });
   if ($(`[data-map="${q.id}"]`)) renderMap(q, mine(q.var));
+  if (q.flow) flowFromShell(q);
+}
+/* A plain value (None, a string, a number): one box with its type underneath. */
+const TYPE = v => v === null ? 'NoneType' : typeof v === 'string' ? 'str' : typeof v === 'number' ? 'int' : typeof v === 'boolean' ? 'bool' : v.t === 'other' ? '' : v.t;
+function renderVal(q, name) {
+  const el = $(`[data-val="${rowKey(q, name)}"]`); if (!el) return;
+  const cur = S[q.id].vals[name] || { exists: false, value: null };
+  el.innerHTML = `<span class="var-name">${esc(name)} =</span>` + (cur.exists
+    ? `<span class="val-box">${esc(repr(cur.value))}</span><span class="badge">${esc(TYPE(cur.value))}</span>`
+    : '<span class="row-empty">deleted. Press “Reset picture”.</span>');
 }
 function renderRow(q, name, h) {
   const key = rowKey(q, name), row = $(`[data-row="${key}"]`); if (!row) return;
@@ -209,6 +219,120 @@ function renderMap(q, h) {
   for (let k = 0; k <= 10; k++) s += `<text x="${X(k)}" y="${B + 14}" text-anchor="middle" class="${onX === k ? 'on' : ''}">${k}</text><text x="${O - 6}" y="${Y(k) + 3}" text-anchor="end" class="${onY === k ? 'on' : ''}">${k}</text>`;
   s += `<text x="${X(10)}" y="${B + 26}" text-anchor="end">x →</text><text x="${O}" y="${O - 8}" text-anchor="middle">↑ y</text>`;
   svg.innerHTML = s;
+}
+
+/* ---------- if / elif / else pictures ----------
+   q.flow = {var, min, max, step, start, unit, tick, programs: [{label, code}], tester}.
+   Python works out every value at once when a program is picked, so the slider is instant. */
+const pyLit = v => v === null ? 'None' : typeof v === 'string' ? JSON.stringify(v) : String(v);
+const flowVals = f => { const a = []; for (let v = f.min; v <= f.max; v += f.step || 1) a.push(v); return a; };
+function buildFlow(q) {
+  const f = q.flow, host = $(`[data-flow="${q.id}"]`); if (!f || !host) return;
+  const st = S[q.id], saved = +store.get(q.id + ':fv');
+  st.fv = saved >= f.min && saved <= f.max ? saved : f.start; st.prog = 0; st.flowRes = null; st.testRes = null;
+  host.innerHTML = `
+    <div class="fl-dial">
+      <label class="fl-var" for="${q.id}-fv">${esc(f.var)} = <output>${st.fv}</output>${f.unit ? ` <span class="unit">${esc(f.unit)}</span>` : ''}</label>
+      <div class="fl-slide"><button type="button" class="btn ghost" data-nudge="-1" aria-label="${esc(f.var)} minus 1">−</button><input type="range" id="${q.id}-fv" min="${f.min}" max="${f.max}" step="${f.step || 1}" value="${st.fv}"><button type="button" class="btn ghost" data-nudge="1" aria-label="${esc(f.var)} plus 1">+</button></div>
+    </div>
+    <div class="seg fl-progs" role="group" aria-label="Pick a program">${f.programs.map((p, i) => `<button type="button" data-prog="${i}" aria-pressed="${i === 0}">${esc(p.label)}</button>`).join('')}</div>
+    <div class="fl-run">
+      <div class="fl-code" data-fl-code></div>
+      <div class="fl-out"><span class="label">prints</span><div data-fl-out></div></div>
+    </div>
+    <div class="fl-map"><span class="label">Every ${esc(f.var)} from ${f.min} to ${f.max}: which branch runs?</span><div class="strip" data-strip></div><div class="legend" data-legend></div></div>
+    <div class="fl-test">
+      <div class="pc"><div class="pc-line"><span class="pr h-k">if</span><div class="pc-in" data-tester></div><span class="pr">:</span><span class="fl-says" data-says></span></div></div>
+      <div class="strip tester" data-tstrip></div>
+      <p class="tip">Type any condition. Yellow shows every ${esc(f.var)} that makes it <code>True</code>.</p>
+    </div>`;
+  const range = $('input[type=range]', host);
+  const setV = v => { st.fv = Math.min(f.max, Math.max(f.min, v)); range.value = st.fv; store.set(q.id + ':fv', st.fv); paintFlow(q); syncShell(q); };
+  range.addEventListener('input', () => setV(+range.value));
+  $$('[data-nudge]', host).forEach(b => b.addEventListener('click', () => setV(st.fv + (+b.dataset.nudge) * (f.step || 1))));
+  $$('[data-prog]', host).forEach(b => b.addEventListener('click', () => {
+    st.prog = +b.dataset.prog; $$('[data-prog]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); loadFlow(q);
+  }));
+  host.addEventListener('click', e => { const c = e.target.closest('.strip i[data-v]'); if (c) setV(+c.dataset.v); });
+  st.setFlowV = setV;
+  let tt = null;
+  st.tester = lineEditor(q, $('[data-tester]', host), {
+    initial: store.get(q.id + ':tester') || '', placeholder: f.tester ? `try: ${f.tester}` : 'type a condition', label: `A condition to try for ${f.var}`,
+    onEnter: () => loadTester(q),
+    onChange: v => { store.set(q.id + ':tester', v); clearTimeout(tt); tt = setTimeout(() => loadTester(q), 350); },
+  });
+  paintFlow(q);
+}
+async function loadFlow(q) {
+  const f = q.flow, st = S[q.id];
+  try { st.flowRes = await Py.call('flow', { src: f.programs[st.prog].code, var: f.var, values: flowVals(f).map(pyLit), setup: q.setup }); }
+  catch (e) { st.flowRes = { error: failText(e) }; }
+  paintFlow(q);
+}
+async function loadTester(q) {
+  const f = q.flow, st = S[q.id], cond = st.tester.state.doc.toString().trim().replace(/^if\s+/, '').replace(/:\s*$/, '');
+  if (!cond) { st.testRes = null; paintFlow(q); return; }
+  try { st.testRes = await Py.call('flow', { src: `if ${cond}:\n    pass`, var: f.var, values: flowVals(f).map(pyLit), setup: q.setup }); }
+  catch (e) { st.testRes = { error: failText(e) }; }
+  paintFlow(q);
+}
+function stripHTML(f, vals, cls, cur) {
+  const few = vals.length <= 24, n = vals.length;
+  const cells = vals.map((v, i) => `<i class="${cls(i)}${v === cur ? ' cur' : ''}" data-v="${v}" title="${esc(f.var)} = ${v}">${few ? v : ''}</i>`).join('');
+  const ticks = few ? '' : vals.map((v, i) => v % (f.tick || 10) === 0 ? `<b class="${(v / (f.tick || 10)) % 2 ? 'odd' : ''}" style="left:${(i + .5) / n * 100}%">${v}</b>` : '').join('');
+  return `<div class="cells">${cells}</div>${ticks ? `<div class="ticks">${ticks}</div>` : ''}`;
+}
+function paintFlow(q) {
+  const f = q.flow, st = S[q.id], host = $(`[data-flow="${q.id}"]`); if (!host) return;
+  const vals = flowVals(f), i = vals.indexOf(st.fv);
+  $('.fl-var output', host).textContent = st.fv;
+  const code = $('[data-fl-code]', host), out = $('[data-fl-out]', host), r = st.flowRes;
+  const lines = f.programs[st.prog].code.split('\n');
+  if (!r || r.error) {
+    code.innerHTML = lines.map((l, k) => `<div class="fl-ln"><span class="fl-no">${k + 1}</span><code>${hl(l)}</code></div>`).join('');
+    out.innerHTML = r && r.error ? `<div class="s-err">${esc(r.error)}</div>` : '<div class="s-note">waiting for Python…</div>';
+  } else {
+    const run = r.runs[i] || { tests: [], branch: -1, out: [] }, arms = r.arms, nArms = arms.length;
+    const state = {};  // line number -> 'lit' | 'dim', plus the condition chips
+    const chips = {};
+    arms.forEach((a, k) => {
+      const t = run.tests[k];
+      chips[a.line] = t ? `<span class="fl-chip ${t[0] ? 'yes' : 'no'}">→ ${t[1] ? esc(t[1]) + (t[0] ? ' counts as True' : ' counts as False') : t[0] ? 'True' : 'False'}</span>` : '<span class="fl-chip skip">not checked</span>';
+      for (let L = a.body[0]; L <= a.body[1]; L++) state[L] = run.branch === k ? 'lit' : 'dim';
+      state[a.line] = t ? 'test' : 'dim';
+    });
+    if (r.else) { const lit = run.branch === nArms; state[r.else[0] - 1] = lit ? 'test' : 'dim'; if (lit) chips[r.else[0] - 1] = '<span class="fl-chip yes">→ none of the above</span>'; for (let L = r.else[0]; L <= r.else[1]; L++) state[L] = lit ? 'lit' : 'dim'; }
+    code.innerHTML = lines.map((l, k) => `<div class="fl-ln ${state[k + 1] || ''}"><span class="fl-no">${k + 1}</span><code>${hl(l)}</code>${chips[k + 1] || ''}</div>`).join('');
+    out.innerHTML = run.error ? `<div class="s-err">${esc(run.error)}</div>` : run.out.length ? run.out.map(o => `<div class="s-out">${esc(o)}</div>`).join('') : '<div class="s-note">(nothing printed)</div>';
+    const bcls = k => { const b = r.runs[k].branch; return b < 0 ? 'bn' : b === nArms ? 'be' : 'b' + (b % 4); };
+    $('[data-strip]', host).innerHTML = stripHTML(f, vals, bcls, st.fv);
+    const seen = new Map();
+    r.runs.forEach(x => { if (!seen.has(x.branch)) seen.set(x.branch, x.out.join(' ') || '(nothing printed)'); });
+    $('[data-legend]', host).innerHTML = [...seen.keys()].sort((a, b) => (a < 0) - (b < 0) || a - b)
+      .map(b => `<span><i class="${b < 0 ? 'bn' : b === nArms ? 'be' : 'b' + (b % 4)}"></i>${b < 0 ? 'nothing runs' : b === nArms ? 'else' : (b === 0 ? 'if' : 'elif') + ` (line ${arms[b].line})`}: ${esc(seen.get(b))}</span>`).join('');
+  }
+  const t = st.testRes, says = $('[data-says]', host), ts = $('[data-tstrip]', host);
+  if (!t) { says.innerHTML = ''; ts.innerHTML = ''; ts.hidden = true; return; }
+  ts.hidden = false;
+  if (t.error) { says.innerHTML = `<span class="s-err">${esc(t.error)}</span>`; ts.innerHTML = ''; return; }
+  const tr = t.runs[i], tv = tr && tr.tests[0];
+  says.innerHTML = tr && tr.error ? `<span class="s-err">${esc(tr.error)}</span>` : tv ? `<span class="fl-chip ${tv[0] ? 'yes' : 'no'}">${esc(f.var)} = ${st.fv} → ${tv[1] ? esc(tv[1]) + ', which counts as ' + (tv[0] ? 'True' : 'False') : tv[0] ? 'True' : 'False'}</span>` : '';
+  ts.innerHTML = stripHTML(f, vals, k => t.runs[k].error ? 'berr' : t.runs[k].branch === 0 ? 'bt' : 'bf', st.fv);
+}
+let shellSync = null;
+function syncShell(q) {
+  // keep the >>> prompt's variable in step with the slider (quietly, no log line)
+  clearTimeout(shellSync);
+  shellSync = setTimeout(async () => {
+    try { const r = await Py.call('shell', { qid: q.id, src: `${q.flow.var} = ${S[q.id].fv}`, var: q.var, vars: q.vars, setup: q.setup }); S[q.id].vals = r.state; } catch (e) { /* restarting */ }
+  }, 200);
+}
+function flowFromShell(q) {
+  // typed height = 150 at the >>> prompt: move the slider there
+  const st = S[q.id], c = st.vals[q.flow.var], v = c && c.value;
+  if (st.setFlowV && Number.isInteger(v) && v !== st.fv && v >= q.flow.min && v <= q.flow.max) {
+    st.fv = v; const range = $(`#${q.id}-fv`); if (range) range.value = v; store.set(q.id + ':fv', v); paintFlow(q);
+  }
 }
 
 /* ---------- the >>> prompt under each picture ---------- */
@@ -305,13 +429,13 @@ function pythonFor(q) {
   return [lang, lang.language.data.of({ autocomplete: labCompletions(q) })];
 }
 /* The homework.py editor. Returns an object with .value like a textarea. */
-function codeEditor(q, parent, initial, { onChange, onRun }) {
+function codeEditor(q, parent, initial, { onChange, onRun, label, placeholder }) {
   const view = new CM.EditorView({
     parent,
     state: CM.EditorState.create({
       doc: initial,
       extensions: [
-        CM.lineNumbers(), CM.highlightActiveLineGutter(), CM.highlightActiveLine(), CM.drawSelection(),
+        ...(label ? [CM.placeholder(placeholder || '')] : [CM.lineNumbers(), CM.highlightActiveLineGutter(), CM.highlightActiveLine()]), CM.drawSelection(),
         CM.history(), CM.indentOnInput(), CM.bracketMatching(), CM.closeBrackets(),
         CM.indentUnit.of('    '), CM.EditorState.tabSize.of(4), CM.EditorView.lineWrapping,
         CM.autocompletion({ activateOnTyping: true, icons: false }),
@@ -322,7 +446,7 @@ function codeEditor(q, parent, initial, { onChange, onRun }) {
         ])),
         CM.keymap.of([...CM.closeBracketsKeymap, ...CM.defaultKeymap, ...CM.historyKeymap, CM.indentWithTab]),
         CM.EditorView.updateListener.of(u => { if (u.docChanged) onChange(); }),
-        CM.EditorView.contentAttributes.of({ 'aria-label': `Your Python script for ${q.id.toUpperCase()}`, autocapitalize: 'off', spellcheck: 'false' }),
+        CM.EditorView.contentAttributes.of({ 'aria-label': label || `Your Python script for ${q.id.toUpperCase()}`, autocapitalize: 'off', spellcheck: 'false' }),
       ],
     }),
   });
@@ -370,8 +494,9 @@ function setLine(view, s) { view.dispatch({ changes: { from: 0, to: view.state.d
 /* ---------- homework.py editor ---------- */
 function buildEditor(q) {
   const host = $(`[data-editor="${q.id}"]`);
+  const ask = q.ask ? `<label class="ask" title="What you would type when input() asks. More than one answer? Separate them with commas."><span>input() answer</span><input data-ask value="${esc(store.get(q.id + ':ask') ?? q.ask)}" autocomplete="off" spellcheck="false" aria-label="Answer for input() when ${q.id.toUpperCase()} runs"></label>` : '';
   host.innerHTML = `<div class="editor">
-    <div class="ed-bar"><span class="file">homework.py · ${q.id.toUpperCase()}</span>
+    <div class="ed-bar"><span class="file">homework.py · ${q.id.toUpperCase()}</span>${ask}
       <div class="ed-actions"><button type="button" class="run">Run ▶</button><button type="button" class="step" title="Run one line at a time">Step</button><button type="button" class="copy">Copy</button><button type="button" class="reset">Start over</button></div></div>
     <div class="ed-cm"></div>
     <div class="console"><div class="con-head"><span>Output</span><label><input type="checkbox" id="${q.id}-trace" checked> show each line</label></div><div class="con-body" aria-live="polite"></div></div>
@@ -382,6 +507,11 @@ function buildEditor(q) {
     onChange: () => { store.set(q.id + ':code', st.ta.value); st.stepping = false; },
     onRun: () => runAll(q),
   });
+  const askEl = $('[data-ask]', host);
+  if (askEl) {
+    askEl.addEventListener('input', () => { store.set(q.id + ':ask', askEl.value); st.stepping = false; });
+    askEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runAll(q); } });
+  }
   const tr = $(`#${q.id}-trace`, host);
   tr.addEventListener('change', () => con.classList.toggle('hide-trace', !tr.checked));
   $('.run', host).onclick = () => runAll(q);
@@ -394,12 +524,22 @@ function buildEditor(q) {
     setTimeout(() => { if (rs.dataset.armed) { delete rs.dataset.armed; rs.textContent = 'Start over'; } }, 3000);
   };
 }
+/* What a homework.py run sends to Python: the answers for input(), and for questions about
+   if statements, the test values every if is tried with (q.probe). */
+const askValues = q => { const el = $(`[data-editor="${q.id}"] [data-ask]`); return (el ? el.value : '').split(',').map(x => x.trim()).filter(Boolean); };
+function runArgs(q, src) {
+  const a = { src, var: q.var, vars: q.vars };
+  if (q.ask) a.inputs = askValues(q);
+  if (q.probe) a.probe = { var: q.probe.var, values: q.probe.values.map(pyLit) };
+  return a;
+}
 function srcLines(q, e) { return S[q.id].ta.value.replace(/\r\n?/g, '\n').split('\n').slice(e.line - 1, e.end).join('\n'); }
 function entryHTML(q, e) {
   let h = `<div class="c-line"><i>${e.line}</i> ${hl(srcLines(q, e))}</div>`;
   h += e.out.map(o => `<div class="c-out">${esc(o)}</div>`).join('');
   if (e.silent && !e.error) h += '<div class="c-note">   ↳ nothing printed: in a script, wrap it in print( ) to see it</div>';
   if (e.error) h += errHTML(e.error);
+  if (e.error && /EOFError/.test(e.error)) h += '<div class="c-note">input() asked for an answer but there wasn\'t one. Type it in the input() answer box next to Run.</div>';
   return h;
 }
 function errHTML(text) {
@@ -411,7 +551,7 @@ async function runAll(q) {
   const st = S[q.id]; st.stepping = false;
   st.body.innerHTML = `<div class="c-note">${Py.ready ? 'running…' : 'waiting for Python to start…'}</div>`;
   let r;
-  try { r = await Py.call('run', { src: st.ta.value, var: q.var, vars: q.vars }); }
+  try { r = await Py.call('run', runArgs(q, st.ta.value)); }
   catch (e) { st.body.innerHTML = `<div class="c-err">${esc(failText(e))}</div>`; return; }
   let h;
   if (r.syntax) h = errHTML(r.syntax) + '<div class="c-note">Python checks the whole file before running it, so nothing ran.</div>';
@@ -433,13 +573,17 @@ async function stepOne(q) {
   const st = S[q.id], restart = !st.stepping;
   if (restart) st.stepHTML = '';
   let r;
-  try { r = await Py.call('step', { qid: q.id, src: st.ta.value, var: q.var, vars: q.vars, restart }); }
+  try { r = await Py.call('step', { qid: q.id, src: st.ta.value, var: q.var, vars: q.vars, restart, inputs: q.ask ? askValues(q) : null }); }
   catch (e) { st.body.innerHTML = `<div class="c-err">${esc(failText(e))}</div>`; st.stepping = false; return; }
   if (r.syntax) { st.body.innerHTML = errHTML(r.syntax); st.stepping = false; return; }
   if (r.entry) st.stepHTML += entryHTML(q, r.entry);
   let tail;
   if (r.errored) tail = '<div class="c-note">stopped at the error. Press Step to start again.</div>';
-  else if (r.done) { tail = '<div class="c-done">✓ end of file</div>'; grade(q, r); }
+  else if (r.done) {
+    tail = '<div class="c-done">✓ end of file</div>';
+    // grading if statements needs the full probe, so do one quiet run for it
+    if (q.probe) Py.call('run', runArgs(q, st.ta.value)).then(x => grade(q, x), () => {}); else grade(q, r);
+  }
   else tail = `<div class="c-next">▶ next: line ${r.next} (press Step)</div>`;
   st.stepping = !r.done;
   st.body.innerHTML = st.stepHTML + tail; st.body.scrollTop = st.body.scrollHeight;
@@ -461,8 +605,29 @@ function gradeCore(q, res, raw) {
     dict: name => { const o = fin(name); return o && o.t === 'dict' ? Object.fromEntries(o.items.map(([k, x]) => [display(k), x])) : null; },
     list: name => { const o = fin(name); return o && o.t === 'list' ? o.items : null; },
     explained: () => WHY_RE.test(raw.split('\n').map(commentText).filter(t => t && !starterComments.has(t)).join(' ').toLowerCase()),
+    ran: !res.syntax,
+    // each top-level if statement, tried with every q.probe value: {line, outs: [printed lines | null], ops, elifs, else}
+    ifs: res.probe || [],
+    // the student's own comments under starter heading "# n." (all their comments if that heading is gone)
+    notes: n => {
+      const lines = raw.split('\n'), head = new RegExp('^\\s*#\\s*' + n + '\\.'), anyHead = /^\s*#\s*\d+\./;
+      const own = l => { const t = commentText(l); return t && !starterComments.has(t) ? t : ''; };
+      const at = lines.findIndex(l => head.test(l) && starterComments.has(commentText(l)));
+      if (at < 0) return lines.map(own).filter(Boolean).join(' ');
+      const out = [];
+      for (const l of lines.slice(at + 1)) { if (anyHead.test(l) && starterComments.has(commentText(l))) break; const t = own(l); if (t) out.push(t); }
+      return out.join(' ');
+    },
   };
-  return q.tasks.map(t => { try { return !!t.check(ctx); } catch (e) { return false; } });
+  // each task sees only the if statements under its own heading(s), so task 4's if can't pass task 1
+  const lines = raw.split('\n'), heads = {};
+  lines.forEach((l, i) => { const m = /^\s*#\s*(\d+)\./.exec(l); if (m && starterComments.has(commentText(l)) && !(m[1] in heads)) heads[m[1]] = i + 1; });
+  const order = Object.values(heads).sort((a, b) => a - b);
+  const ifsUnder = ns => {
+    const spans = ns.filter(n => n in heads).map(n => [heads[n], order.find(h => h > heads[n]) || Infinity]);
+    return spans.length ? ctx.ifs.filter(b => spans.some(([a, z]) => b.line > a && b.line < z)) : ctx.ifs;
+  };
+  return q.tasks.map((t, k) => { try { return !!t.check({ ...ctx, ifs: ifsUnder(t.under || [k + 1]) }); } catch (e) { return false; } });
 }
 function grade(q, res) {
   const d = gradeCore(q, res, S[q.id].ta.value);
@@ -473,8 +638,15 @@ function grade(q, res) {
 /* ---------- assert practice cells ---------- */
 function cellHTML(q, t, k) {
   const c = t.cell, id = `${q.id}-c${k}`;
+  if (c.prog) return `<div class="pc" data-pc="${k}">
+    <span class="pc-label h-c">${esc(c.label)}</span>
+    <div class="pc-prog" data-prog></div>
+    <div class="pc-line"><button type="button" class="pc-btn" data-check>Check</button><button type="button" class="pc-btn" data-addscript>Add to homework.py</button></div>
+    <div class="pc-res" data-res></div></div>`;
   if (c.why) {
-    const tryIt = `<div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><span class="code">${hl(c.tryCode)}</span><button type="button" class="pc-btn" data-try>Run it</button></div>
+    // several lines show like the >>> prompt does: >>> first, then ...
+    const tc = !c.tryCode ? '' : c.tryCode.split('\n').map((l, i) => `<span class="pr">${i ? '...' : '&gt;&gt;&gt;'}</span> ${hl(l)}`).join('\n');
+    const tryIt = !c.tryCode ? '' : `<div class="pc-line pc-try"><span class="code">${tc}</span><button type="button" class="pc-btn" data-try>Run it</button></div>
     <div class="pc-res" data-try-res></div>`;
     const write = `<label class="pc-label" for="${id}"><span class="h-c">${esc(c.label || '# Why? Explain in your own words:')}</span></label>
     <textarea class="pc-why" id="${id}" rows="${c.rows || 3}" spellcheck="true" placeholder="${esc(c.ph || 'Python stops because…')}"></textarea>
@@ -490,20 +662,25 @@ function cellHTML(q, t, k) {
     <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="type a line of Python" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
     <div class="pc-res" data-res></div></div>`;
 }
+const cellText = (q, k) => S[q.id].inputs[k] ?? (q.tasks[k].cell && q.tasks[k].cell.start) ?? '';
 function cellSpecs(q) {
   const st = S[q.id], varRe = new RegExp('\\b(' + q.vars.join('|') + ')\\b');
   return q.tasks.map((t, k) => {
     const c = t.cell; if (!c || c.why) return { kind: null };
     const input = (st.inputs[k] || '').trim();
+    if (c.prog) {
+      const vals = c.values || q.probe.values;
+      return { kind: 'prog', input: cellText(q, k), want: vals.map(c.prog), var: q.probe.var, values: vals.map(pyLit) };
+    }
     return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !!input && !varRe.test(input) };
   });
 }
 function composeCell(q, t, k, r) {
   const c = t.cell; if (!c) return null;
-  const input = (S[q.id].inputs[k] || '').trim();
+  const input = cellText(q, k).trim();
   if (c.why) {
     if (!input) return { state: 'empty', lines: [] };
-    const ok = c.ok ? c.ok.test(input) : input.length >= 15 && WHY_RE.test(input.toLowerCase());
+    const ok = c.ok ? c.ok.test(input) : input.length >= 15 && (c.re || WHY_RE).test(input.toLowerCase());
     return ok
       ? { state: 'pass', lines: [['ok', c.okMsg || '✓ answered. Your teacher grades the explanation.']] }
       : { state: 'fail', lines: [['note', c.whyHint || 'Say what Python does (the error) and why tuples behave that way.']] };
@@ -513,6 +690,19 @@ function composeCell(q, t, k, r) {
   if (r.state === 'empty') return { state: 'empty', lines: [] };
   if (r.state === 'blocked') return { state: 'blocked', lines: r.has_input ? [['note', `Finish task ${r.blocked_by + 1} first. This list depends on it.`]] : [] };
   if (r.state === 'skip') return { state: 'fail', lines: [['note', `Use ${q.var} to get there. Typing the answer in directly doesn't count.`]] };
+  if (c.prog) {
+    const v = q.probe.var, vals = c.values || q.probe.values;
+    const trap = (c.traps || []).find(([re]) => re.test(input));
+    // setting the variable yourself means every test value prints the same thing
+    const sets = !c.values && new RegExp(`^\\s*${v}\\s*=(?!=)`, 'm').test(input);
+    const notes = [...(trap ? [['note', trap[1]]] : []), ...(sets ? [['note', `${v} is already set, and Check changes it each time. Leave out your own ${v} = line.`]] : [])];
+    const said = p => p.length ? p.map(s => `"${s}"`).join(' then ') : 'nothing';
+    if (r.error && !r.v) return { state: 'fail', lines: [['err', r.error], ...notes] };
+    if (r.error) return { state: 'fail', lines: [['err', `✗ When ${v} is ${r.v}, your code stops with an error:`], ['err', r.error], ...notes] };
+    if (r.assert_failed) return { state: 'fail', lines: [['err', `✗ When ${v} is ${r.v}, your code prints ${said(r.printed)}. It should print ${said(r.want ? [r.want] : [])}.`], ...notes] };
+    if (c.must && !c.must[0].test(input)) return { state: 'fail', lines: [...(vals.length > 1 ? [['ok', 'Right every time…']] : []), ['note', c.must[1]]] };
+    return { state: 'pass', lines: [['ok', vals.length > 1 ? `✓ right for every ${v} we tried: ${vals.map(pyLit).join(', ')}` : `✓ it runs and prints "${c.prog(vals[0])}"`]] };
+  }
   if (r.not_expr) return { state: 'fail', lines: [['note', `For this task, show a value: for example print(${q.var}[0]) or just ${q.var}[0]. No = or del here.`]] };
   if (r.error) return { state: 'fail', lines: [...P, ['err', r.error]] };
   const nowVar = q.vars.find(v => new RegExp('\\b' + v + '\\b').test(input)) || q.var;
@@ -534,19 +724,26 @@ async function checkCells(q) {
   });
   paintTasks(q); paintScores();
 }
-function addWhyToScript(q, k) {
-  const st = S[q.id], text = (st.inputs[k] || '').trim(); if (!text) return;
-  const lines = text.split(/\n/).map(l => '# ' + l.trim()).join('\n');
-  const ta = st.ta, anchor = q.tasks[k].cell.anchor || '#    What happens? Why? Write your answer as comments below.';
-  const at = ta.value.indexOf(anchor);
-  ta.value = at >= 0 ? ta.value.slice(0, at + anchor.length) + '\n' + lines + ta.value.slice(at + anchor.length) : ta.value.replace(/\s*$/, '') + '\n' + lines + '\n';
+function addToScript(q, k) {
+  const st = S[q.id], c = q.tasks[k].cell, raw = cellText(q, k), text = c.prog ? raw.replace(/\s+$/, '') : raw.trim(); if (!text.trim()) return;
+  const lines = c.prog ? text : text.split(/\n/).map(l => '# ' + l.trim()).join('\n');
+  const ta = st.ta, src = ta.value, anchor = c.anchor || '#    What happens? Why? Write your answer as comments below.';
+  const at = src.indexOf(anchor);
+  if (at < 0) { ta.value = src.replace(/\s*$/, '') + '\n' + lines + '\n'; ta.dispatchEvent(new Event('input')); return; }
+  const from = at + anchor.length, next = src.slice(from).search(/\n# \d+\./), to = next < 0 ? src.length : from + next;
+  const section = src.slice(from, to).trim(), end = from + src.slice(from, to).replace(/\s+$/, '').length;
+  // the box grew from code already added here (task 1's if, now with an else): replace it, don't add a copy
+  const grew = c.prog && section && !/^#/m.test(section) && text.startsWith(section);
+  if (section.includes(lines)) return;
+  ta.value = grew ? src.slice(0, from) + '\n' + lines + (next < 0 ? '\n' : '\n\n\n') + src.slice(to).replace(/^\n+/, '')
+                  : src.slice(0, end) + '\n' + lines + src.slice(end);
   ta.dispatchEvent(new Event('input'));
 }
 function buildTasks(q) {
   const st = S[q.id], ol = $(`[data-tasks="${q.id}"]`);
   try { st.inputs = JSON.parse(store.get(q.id + ':cells') || '{}') || {}; } catch (e) { st.inputs = {}; }
   ol.innerHTML = q.tasks.map((t, k) => `<li class="task" data-t="${k}"><span class="tick" aria-hidden="true"></span><div class="task-main">
-    <p>${t.text} <span class="pts">${t.pts} pts</span></p>
+    <div class="t-text">${t.text} <span class="pts">${t.pts} pts</span></div>
     ${t.cell ? cellHTML(q, t, k) : ''}
     <div class="task-foot"><span class="st st-a">practice check</span><span class="st st-s">homework.py</span>
     <div class="peek">${t.hint ? `<details><summary>Hint</summary><div>${t.hint}</div></details>` : ''}</div></div>
@@ -554,20 +751,26 @@ function buildTasks(q) {
   q.tasks.forEach((t, k) => {
     const pc = $(`[data-pc="${k}"]`, ol); if (!pc) return;
     const save = v => { st.inputs[k] = v; store.set(q.id + ':cells', JSON.stringify(st.inputs)); };
-    const host = $('[data-cm]', pc), why = $('.pc-why', pc);
+    const host = $('[data-cm]', pc), why = $('.pc-why', pc), prog = $('[data-prog]', pc);
     if (host) lineEditor(q, host, { initial: st.inputs[k] || '', placeholder: host.dataset.ph, label: host.dataset.label, onChange: save, onEnter: () => checkCells(q) });
+    if (prog) {
+      const c = t.cell, ed = codeEditor(q, prog, cellText(q, k), { label: `Your code for task ${k + 1}`, placeholder: c.ph, onRun: () => checkCells(q), onChange: () => save(ed.value) });
+      // a task that builds on an earlier one starts from that box's code
+      if (c.from != null) prog.addEventListener('focusin', () => { if (!ed.value.trim() && (st.inputs[c.from] || '').trim()) ed.value = st.inputs[c.from]; });
+    }
     if (why) { why.value = st.inputs[k] || ''; why.addEventListener('input', () => save(why.value)); }
     $('[data-check]', pc).addEventListener('click', () => checkCells(q));
     const tryBtn = $('[data-try]', pc);
     if (tryBtn) tryBtn.addEventListener('click', async () => {
       const r = await shellRun(q, t.cell.tryCode, { history: false });
       const err = r && r.lines.find(l => l[0] === 'err'), out = r ? r.lines.filter(l => l[0] === 'out') : [];
+      // a SyntaxError (like a missing indent) stops Python before anything runs: no traceback
       $('[data-try-res]', pc).innerHTML = err
-        ? `<div class="s-err">${esc('Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\n' + err[1])}</div>`
+        ? `<div class="s-err">${esc((/^(Syntax|Indentation|Tab)Error/.test(err[1]) ? '' : 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\n') + err[1])}</div>`
         : out.length ? out.map(l => `<div class="s-out">${esc(l[1])}</div>`).join('') : '<div class="s-ok">(no error)</div>';
     });
     const addBtn = $('[data-addscript]', pc);
-    if (addBtn) addBtn.addEventListener('click', () => { addWhyToScript(q, k); addBtn.textContent = 'Added ✓'; setTimeout(() => addBtn.textContent = 'Add to homework.py', 1500); });
+    if (addBtn) addBtn.addEventListener('click', () => { addToScript(q, k); addBtn.textContent = 'Added ✓'; setTimeout(() => addBtn.textContent = 'Add to homework.py', 1500); });
   });
   try { const d = JSON.parse(store.get(q.id + ':done') || 'null'); if (Array.isArray(d)) st.done = d; } catch (e) { /* ignore */ }
 }
@@ -626,7 +829,7 @@ async function buildReport() {
   for (const q of QS) {
     const src = S[q.id].ta.value.replace(/\r\n?/g, '\n');
     let res;
-    try { res = await Py.call('run', { src, var: q.var, vars: q.vars }); }
+    try { res = await Py.call('run', runArgs(q, src)); }
     catch (e) { res = { entries: [{ error: failText(e) }], outputs: [], final: null }; }
     S[q.id].done = gradeCore(q, res, src); store.set(q.id + ':done', JSON.stringify(S[q.id].done)); paintTasks(q);
     const t = tally(q);
@@ -635,7 +838,7 @@ async function buildReport() {
     sum.push('#', head + ' '.repeat(Math.max(2, 46 - head.length)) + `${t.got} / ${t.max} pts   (practice checks ${t.checks}/${t.cells})`);
     q.tasks.forEach((task, i) => {
       const c = S[q.id].cells[i], typed = (S[q.id].inputs[i] || '').trim();
-      sum.push(`#   [${S[q.id].done[i] ? 'x' : ' '}] ${i + 1}. ${plain(task.text)}  (${task.pts} pts)`);
+      sum.push(`#   [${S[q.id].done[i] ? 'x' : ' '}] ${i + 1}. ${plain(task.text.replace(/<\/?pre>/g, '\n')).trim().replace(/\s*\n\s*/g, ' / ')}  (${task.pts} pts)`);
       if (task.cell && task.cell.why) sum.push(`#          explanation box: ${typed ? typed.replace(/\s*\n\s*/g, ' / ') : '(empty)'}`);
       else if (task.cell) sum.push(`#          practice check: ${c && c.state === 'pass' ? 'passed' : 'not passed'}${typed ? '   typed: ' + typed : ''}`);
     });
@@ -643,7 +846,8 @@ async function buildReport() {
     let outTxt = res.syntax ? comment(res.syntax) : (res.outputs.map(comment).join('\n') || '# (nothing printed)');
     const err = res.entries && res.entries.find(e => e.error);
     if (err) outTxt += '\n' + comment(err.error);
-    blocks.push(`# ===== ${q.id.toUpperCase()}: ${q.title} =====\n\n${src.trim()}\n\n# --- what this printed (Python ${S.version || '3'}) ---\n${outTxt}`);
+    const asked = q.ask ? `, input() answer: ${askValues(q).join(', ') || '(none)'}` : '';
+    blocks.push(`# ===== ${q.id.toUpperCase()}: ${q.title} =====\n\n${src.trim()}\n\n# --- what this printed (Python ${S.version || '3'}${asked}) ---\n${outTxt}`);
   }
   paintScores();
   const top = [
@@ -698,13 +902,13 @@ function setStatus(state, detail) {
 Py.on((state, d) => {
   if (state === 'ready') {
     S.version = d.version; setStatus('ready', d.version);
-    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); });
+    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } });
   } else setStatus(state, d);
 });
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
-  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q);
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
     row.addEventListener('click', e => {

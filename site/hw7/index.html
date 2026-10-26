@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homework 7 · Flow Control</title>
+<meta name="description" content="Python practice on if, elif, else, and, or and None: programs you can steer, condition checks and a real Python editor.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 7</div>
+    <h1><span class="f">Flow Control</span> Lab</h1>
+    <p class="lede">Until now Python ran every line, top to bottom. With <strong>if</strong>, a program makes decisions: it checks a condition, and runs a block of lines only when the condition is <code>True</code>.</p>
+    <div class="idea">
+      <div class="kind-card is-flow">
+        <h3><span class="glyph">if</span> Two roads</h3>
+        <div class="demo pre">if age &gt;= 12:
+    print("Big coaster!")
+else:
+    print("Too small.")</div>
+        <ul>
+          <li>A colon <code>:</code> ends every <code>if</code>, <code>elif</code> and <code>else</code> line.</li>
+          <li>The block under it is <strong>indented</strong> 4 spaces, all lines the same.</li>
+          <li><code>elif</code> checks another condition; <code>else</code> catches the rest.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-flow">
+        <h3><span class="glyph">==</span> Asking, not telling</h3>
+        <div class="demo">age = 12      age == 12</div>
+        <ul>
+          <li><code>=</code> puts a value in a variable. <code>==</code> asks if two values are equal.</li>
+          <li><code>and</code>: both sides must be True. <code>or</code>: at least one side.</li>
+          <li><code>None</code> means “no value”: <code>if myval == None:</code></li>
+          <li><code>"10"</code> is a string, <code>10</code> is a number: not equal!</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Move the slider and watch which lines run.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="flow">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Roller Coaster Height Check</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">A theme park ride has a height rule: riders must be at least 120 cm tall. The program asks how tall you are with <code>height = int(input("How tall are you in cm? "))</code>.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">height · int</span></div>
+      <div class="flow" data-flow="q1"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="height >= 120">height &gt;= 120</button>
+        <button type="button" class="btn" data-run="q1" data-code="height > 120">height &gt; 120</button>
+        <button type="button" class="btn" data-run="q1" data-code="height == 130">height == 130</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="if height = 130: print('yes')">Try: if height = 130:</button>
+      </div>
+      <p class="tip">Set the slider to exactly 120 and press the first two buttons. <code>&gt;=</code> lets 120 in; <code>&gt;</code> doesn't. And <code>=</code> inside an <code>if</code> is an error: it puts a value in, it doesn't ask.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: height < 140" data-label="Python shell for height"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="flow">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Joke Machine</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">A joke robot tells a different joke depending on the user's age: <code>age = int(input("How old are you? "))</code>.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">age · int</span></div>
+      <div class="flow" data-flow="q2"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="age == 13 or age == 14">age == 13 or age == 14</button>
+        <button type="button" class="btn" data-run="q2" data-code="age >= 13 and age <= 15">age &gt;= 13 and age &lt;= 15</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="age == 13 or 14">Try: age == 13 or 14</button>
+        <button type="button" class="btn" data-run="q2" data-code="bool(14)">bool(14)</button>
+      </div>
+      <p class="tip">Pick each Teen zone program: the coloured strips come out the same. And <code>age == 13 or 14</code> is a trap: Python reads it as <code>(age == 13) or 14</code>, and a plain <code>14</code> counts as True.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: age > 10 and age < 13" data-label="Python shell for age"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="flow">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Secret Word</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">A robot asks for a secret word. If the variable has no value yet, it holds <code>None</code>, and the robot should handle that safely.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="vals"><div class="val" data-val="q3"></div><div class="val" data-val="q3:answer"></div></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="secret == None">secret == None</button>
+        <button type="button" class="btn" data-run="q3" data-code="type(secret)">type(secret)</button>
+        <button type="button" class="btn" data-run="q3" data-code="type(answer)">type(answer)</button>
+        <button type="button" class="btn" data-run="q3" data-code="answer == '10'">answer == '10'</button>
+        <button type="button" class="btn" data-run="q3" data-code="int(answer) == 10">int(answer) == 10</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip">The tag next to each box is its <strong>type</strong>. Values of different types are never equal, even when they look alike.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: secret = 'pizza'" data-label="Python shell for secret and answer"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first (with the answers in the input() boxes), so you get the latest results.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached. A script that runs longer than 5 seconds is stopped, so a loop that never ends can't freeze the page.</p>
+    <ul>
+      <li><strong>input().</strong> A web page can't pause Python to wait for typing, so each script has an <em>input() answer</em> box next to Run. When the script calls <code>input()</code>, it gets that answer, and the output shows the prompt and the answer together, the way a terminal does.</li>
+      <li><strong>How if statements are graded.</strong> Every <code>if</code> statement in homework.py is also run on its own with many values: heights 0, 90, 100, 110, 119, 120, 121, 130, 150, 199, 200, 201, 210, 250, and ages 0, 5, 9, 10, 11, 12, 13, 14, 20, 99. A task counts only if the right thing prints for every one of them, so <code>&gt;</code> instead of <code>&gt;=</code>, or <code>age == 10 or 11</code>, doesn't pass. Because each <code>if</code> is tried on its own, task 4's <code>height = 130</code> can't hide what task 5's condition does.</li>
+      <li>Each task has two checks. The <strong>practice check</strong> is the box under the task: students type just that task's code, and Check runs it for every test value and names the first value where it goes wrong. <em>Add to homework.py</em> copies it under the task's heading. The <strong>homework.py</strong> check is the graded one.</li>
+      <li>Written answers (Q1 task 3, Q2 task 4, bonus task 3) are graded by you. The page only checks that a comment was written under that task (and, for Q1 task 3, that it mentions the indentation).</li>
+      <li>The assignment asks for one script for all three questions. This page has an editor per question; the report puts the three one after another, so together they read as one script.</li>
+      <li>Some words were missing from the posted text, apparently lost in Classroom's formatting. The joke ages (10, 11, 12) are from lecture 4, slide 11. “At least 120 cm”, “shorter than 120 cm” and “a maximum height of 200 cm” are read from the tasks around them.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>
