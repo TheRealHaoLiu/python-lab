@@ -6,3 +6,6 @@ __pycache__/
 
 # teacher's class materials pulled from Google Classroom (not ours to publish)
 class-materials/
+
+# Claude Code worktrees
+.claude/
