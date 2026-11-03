@@ -1,7 +1,7 @@
 /* Layout: a sheet of graph paper with three experiments; each = a picture bench you poke, then a script bench you write. */
 :root{
   --paper:#f4f7fb; --grid:#e0e7f1; --card:#ffffff; --ink:#1b2440; --muted:#5a6684; --line:#cdd6e4;
-  --tuple:#4a43c8; --tuple-soft:#ebeafc; --list:#c95a12; --list-soft:#fdeee2; --dict:#0e7468; --dict-soft:#dcf1ed; --flow:#a8326e; --flow-soft:#fbe8f1;
+  --tuple:#4a43c8; --tuple-soft:#ebeafc; --list:#c95a12; --list-soft:#fdeee2; --dict:#0e7468; --dict-soft:#dcf1ed; --flow:#a8326e; --flow-soft:#fbe8f1; --loop:#2563c9; --loop-soft:#e4ecfb;
   --mark:#ffe46b; --mark-ink:#1b2440; --ok:#1d8448; --ok-soft:#e2f3e9; --err:#c42d3a; --err-soft:#fbe6e8;
   --code-bg:#151b2e; --code-ink:#e6ebf7; --code-dim:#8892af; --code-line:#262f48; --code-str:#ffd479; --code-err:#ff8f99; --code-ok:#8fe3ad; --code-note:#9fb7ff;
   --code-kw:#ff8fc8; --code-fn:#7fd4ff; --code-num:#c9a8ff; --code-field:#222a42;
@@ -13,12 +13,12 @@
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#0f1420; --grid:#182133; --card:#161d2b; --ink:#e7ecf6; --muted:#9aa5bf; --line:#2a3447;
-  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b;
+  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b; --loop:#7fb0ff; --loop-soft:#162a4d;
   --mark:#ffd84a; --mark-ink:#1b2440; --ok:#62d391; --ok-soft:#163323; --err:#ff7b86; --err-soft:#3b1a20;
   --code-bg:#0a0e17; --code-line:#1d2538; color-scheme:dark } }
 :root[data-theme="dark"]{
   --paper:#0f1420; --grid:#182133; --card:#161d2b; --ink:#e7ecf6; --muted:#9aa5bf; --line:#2a3447;
-  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b;
+  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b; --loop:#7fb0ff; --loop-soft:#162a4d;
   --mark:#ffd84a; --mark-ink:#1b2440; --ok:#62d391; --ok-soft:#163323; --err:#ff7b86; --err-soft:#3b1a20;
   --code-bg:#0a0e17; --code-line:#1d2538; color-scheme:dark }
 
@@ -39,7 +39,7 @@ button{font:inherit;color:inherit}
 .hero{padding-top:40px;display:grid;gap:22px}
 .eyebrow{font:600 12px var(--f-code);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .hero h1{font-size:clamp(36px,7vw,64px);letter-spacing:-.01em}
-.hero h1 .t{color:var(--tuple)} .hero h1 .l{color:var(--list)} .hero h1 .d{color:var(--dict)} .hero h1 .f{color:var(--flow)}
+.hero h1 .t{color:var(--tuple)} .hero h1 .l{color:var(--list)} .hero h1 .d{color:var(--dict)} .hero h1 .f{color:var(--flow)} .hero h1 .lp{color:var(--loop)}
 .lede{max-width:62ch;font-size:18px;color:var(--muted);margin:0}
 .idea{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
 .kind-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:10px;min-width:0}
@@ -50,6 +50,7 @@ button{font:inherit;color:inherit}
 .kind-card.is-list{--kind:var(--list);--kind-soft:var(--list-soft)}
 .kind-card.is-dict{--kind:var(--dict);--kind-soft:var(--dict-soft)}
 .kind-card.is-flow{--kind:var(--flow);--kind-soft:var(--flow-soft)}
+.kind-card.is-loop{--kind:var(--loop);--kind-soft:var(--loop-soft)}
 .kind-card .demo.pre{white-space:pre}
 .how{display:flex;flex-wrap:wrap;gap:10px 28px;margin:0;padding:0;list-style:none;color:var(--muted)}
 .how li{display:flex;gap:8px;align-items:baseline}
@@ -63,6 +64,7 @@ button{font:inherit;color:inherit}
 .q[data-kind="list"]{--kind:var(--list);--kind-soft:var(--list-soft)}
 .q[data-kind="dict"]{--kind:var(--dict);--kind-soft:var(--dict-soft)}
 .q[data-kind="flow"]{--kind:var(--flow);--kind-soft:var(--flow-soft)}
+.q[data-kind="loop"]{--kind:var(--loop);--kind-soft:var(--loop-soft)}
 .q-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border-top:3px solid var(--kind);padding-top:14px}
 .q-num{font:600 14px var(--f-code);color:var(--card);background:var(--kind);border-radius:6px;padding:3px 8px}
 .q-head h2{font-size:clamp(26px,4vw,34px)}
@@ -220,6 +222,7 @@ button.ix{cursor:pointer;text-decoration:underline dotted;text-underline-offset:
 
 /* assert practice cell */
 .task-main{display:grid;gap:8px;min-width:0}
+.task-main > *{min-width:0}  /* a long <pre> in a task text scrolls instead of widening the page */
 .pc{background:var(--code-bg);color:var(--code-ink);border-radius:10px;font:14px/1.5 var(--f-code);padding:8px 12px;display:grid;gap:4px;min-width:0}
 .pc-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
 .pc .pr{color:var(--code-ok);flex:none}
@@ -368,3 +371,28 @@ pre.report{background:var(--code-bg);color:var(--code-ink);border-radius:10px;pa
 .ask{display:flex;align-items:center;gap:6px;font:600 12px var(--f-code);color:var(--code-dim)}
 .ask input{width:9ch;background:var(--code-field);border:0;border-bottom:2px solid var(--code-str);border-radius:5px 5px 0 0;color:var(--code-str);font:600 14px var(--f-code);padding:4px 6px;outline:none}
 .ask input:focus{border-bottom-color:var(--code-ok)}
+
+/* ---------- for / while pictures (hw8) ---------- */
+.loop{display:grid;gap:16px;min-width:0}
+.lp-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lp-ctl .btn:disabled{opacity:.4;cursor:default}
+.lp-status{font:600 13px var(--f-code);color:var(--muted);margin-left:auto;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.lp-status code{background:var(--kind-soft);color:var(--ink);padding:1px 7px;border-radius:5px;font-size:13px}
+.lp-map,.lp-inner,.lp-test{display:grid;gap:8px;min-width:0}
+.lp-inner[hidden],.lp-seq[hidden]{display:none}
+.strip.turns .cells{cursor:pointer}
+.strip.turns .cells i{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;line-height:34px;text-align:center;padding:0 3px}
+.strip.turns .cells i.bn{color:var(--muted)}
+.strip.turns .cells i.berr{color:var(--card)}
+@media (max-width:520px){.strip.turns .cells.many i{font-size:0}}  /* on a phone, many turns: colour only */
+.strip.inner .cells{height:28px}
+.strip.inner .cells i{line-height:28px}
+.lp-lines{max-height:240px;overflow:auto;display:grid;gap:1px;align-content:start}
+.lp-lines .new{border-left:3px solid var(--code-ok);margin-left:-10px;padding-left:7px;background:var(--code-sel)}
+.lp-seq{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.seq-box{display:grid;gap:0;text-align:center;font:600 14px var(--f-code);border:2px solid var(--kind);border-radius:8px;padding:3px 10px 5px;background:var(--card);min-width:44px}
+.seq-box i{font:600 10px var(--f-code);color:var(--muted);font-style:normal}
+.seq-more{color:var(--muted);font:13px var(--f-code)}
+/* a list drawn inside a loop bench keeps the list colour; the bench stays loop-coloured */
+.row-wrap.own-tint{position:relative}
+.row-wrap.own-tint .var-name .badge{position:absolute;top:0;right:0}

@@ -5,6 +5,7 @@ Interactive Python homework for a middle-school class, live at
 
 | # | Homework | Page | Notebook |
 |---|---|---|---|
+| 8 | Loops (wizard's potion assembly line, magic coin counter, huge hairy pants) | [`hw8/`](https://therealhaoliu.github.io/python-lab/hw8/) | none |
 | 7 | Flow Control (roller coaster height check, joke machine, secret word) | [`hw7/`](https://therealhaoliu.github.io/python-lab/hw7/) | none |
 | 6 | Dictionaries (class pets, book shelf vs. sticker album, team rosters) | [`hw6/`](https://therealhaoliu.github.io/python-lab/hw6/) | none |
 | 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | [Colab](https://colab.research.google.com/drive/1F3OSTM8XyNexynG4aKUC3kTzux_18rsO?usp=sharing) · source `notebooks/hw5-tuples-and-lists.ipynb` |
@@ -26,6 +27,7 @@ site/
   hw5/lesson.js     Homework 5 content: questions, tasks, hidden checks, grading rules
   hw6/              Homework 6 (dictionaries), same layout
   hw7/              Homework 7 (if/elif/else, and/or, None): slider pictures instead of boxes
+  hw8/              Homework 8 (for, range(), while, nested loops): step through a loop one turn at a time
   css/lab.css       shared styles (light and dark)
   js/config.js      where Pyodide comes from, run timeout
   js/app.js         shared page behaviour: pictures, editors, checks, report
@@ -71,7 +73,18 @@ fail, and a later `height = 130` can't mask an earlier condition. A task's check
 code can't pass another. The practice box for such a task (`cell: {prog}`) takes the task's
 code itself and runs it once per value, naming the first value where the output is wrong.
 
-**Runaway code.** Each run is stopped after `timeoutMs` (5 s). The worker is killed and
+**Loops (Homework 8).** A question with `loop: {programs, watch, tester}` gets a picture that
+steps through a program one turn at a time (`labkit.trace`): the loop line shows the loop
+variable's value, the body lights up, the output grows, and the drawn list's box lights up; a
+loop inside a loop gets its own strip. A `while` still True after 60 turns is shown as endless.
+The `for x in …` box (`labkit.seq`) draws every value a `range()` or list would give. Grading
+sees `c.loops`: each top-level `for`/`while` under the task's heading with what it printed,
+its `iter`/`test` text and nesting `depth`; a prog cell may expect a list of lines, and its
+`probe` runs the student's loop with a second list or number so hand-typed prints don't pass.
+
+**Runaway code.** Student code runs under a step budget (`labkit.Budget`, 20 000 line
+events): a `while` that never ends stops with `LoopLimit` and its output so far, and the page
+keeps running. Each run is also stopped after `timeoutMs` (5 s). Then the worker is killed and
 Python restarts, so `while True:` can't freeze the page.
 
 **Student data.** Code, check inputs, names and scores live in the student's own browser

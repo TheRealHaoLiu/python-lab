@@ -155,7 +155,7 @@ function renderRow(q, name, h) {
   $(`[data-open="${key}"]`).textContent = BRK[kind][0];
   $(`[data-close="${key}"]`).textContent = BRK[kind][1];
   // One picture tints its whole bench; with two, each picture keeps its own colour.
-  const tint = q.vars.length > 1 ? row.closest('.row-wrap') : row.closest('.bench');
+  const tint = q.vars.length > 1 || row.closest('.row-wrap').classList.contains('own-tint') ? row.closest('.row-wrap') : row.closest('.bench');
   tint.style.setProperty('--kind', `var(--${kind})`); tint.style.setProperty('--kind-soft', `var(--${kind}-soft)`);
   const badge = $(`[data-badge="${key}"]`), n = v && v.items ? v.items.length : 0;
   if (badge) badge.textContent = !v || !v.items ? '' : kind === 'dict' ? `dict · ${n} key${n === 1 ? '' : 's'} · can change` : kind === 'list' ? `list · ${n} items · can change` : `tuple · ${n} items · sealed`;
@@ -224,7 +224,7 @@ function renderMap(q, h) {
 /* ---------- if / elif / else pictures ----------
    q.flow = {var, min, max, step, start, unit, tick, programs: [{label, code}], tester}.
    Python works out every value at once when a program is picked, so the slider is instant. */
-const pyLit = v => v === null ? 'None' : typeof v === 'string' ? JSON.stringify(v) : String(v);
+const pyLit = v => v === null ? 'None' : typeof v === 'string' ? JSON.stringify(v) : Array.isArray(v) ? '[' + v.map(pyLit).join(', ') + ']' : String(v);
 const flowVals = f => { const a = []; for (let v = f.min; v <= f.max; v += f.step || 1) a.push(v); return a; };
 function buildFlow(q) {
   const f = q.flow, host = $(`[data-flow="${q.id}"]`); if (!f || !host) return;
@@ -335,20 +335,177 @@ function flowFromShell(q) {
   }
 }
 
+/* ---------- for / while pictures ----------
+   q.loop = {programs: [{label, code}], watch: [names shown after each turn], tester, limit}.
+   Python runs the whole loop once (labkit trace) and reports every turn; the page then
+   steps through the turns: the loop line gets a chip with the loop variable, the body
+   lights up, the output grows one turn at a time, and the drawn list's box lights up. */
+function buildLoop(q) {
+  const f = q.loop, host = $(`[data-loop="${q.id}"]`); if (!f || !host) return;
+  const st = S[q.id];
+  st.lp = { prog: 0, res: null, steps: [], pos: 0, seq: null };
+  host.innerHTML = `
+    <div class="seg fl-progs" role="group" aria-label="Pick a program">${f.programs.map((p, i) => `<button type="button" data-prog="${i}" aria-pressed="${i === 0}">${esc(p.label)}</button>`).join('')}</div>
+    <div class="fl-run">
+      <div class="fl-code" data-lp-code></div>
+      <div class="fl-out"><span class="label">prints</span><div class="lp-lines" data-lp-out></div></div>
+    </div>
+    <div class="lp-ctl">
+      <button type="button" class="btn ghost" data-lp="restart" title="Back to before the loop starts">↺ Start over</button>
+      <button type="button" class="btn ghost" data-lp="back" aria-label="Back one turn">◀</button>
+      <button type="button" class="btn" data-lp="next">Next turn ▶</button>
+      <button type="button" class="btn ghost" data-lp="end">Run to the end ⏭</button>
+      <span class="lp-status" data-lp-status aria-live="polite"></span>
+    </div>
+    <div class="lp-map"><span class="label" data-lp-maplabel>Every turn of the loop</span><div class="strip turns" data-lp-strip></div><div class="lp-inner" data-lp-innerwrap hidden><span class="label">inside this turn, the inner loop's turns</span><div class="strip turns inner" data-lp-inner></div></div></div>
+    <div class="lp-test">
+      <div class="pc"><div class="pc-line"><span class="pr h-k">for</span><span class="pr">x</span><span class="pr h-k">in</span><div class="pc-in" data-lp-tester></div><span class="pr">:</span><span class="fl-says" data-lp-says></span></div></div>
+      <div class="lp-seq" data-lp-seq hidden></div>
+      <p class="tip">Type anything a loop could walk through: <code>range(1, 10)</code>, <code>range(3)</code>, a list. The boxes show every value x will take, in order.</p>
+    </div>`;
+  $$('[data-prog]', host).forEach(b => b.addEventListener('click', () => {
+    st.lp.prog = +b.dataset.prog; $$('[data-prog]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); loadLoop(q);
+  }));
+  const go = pos => { st.lp.pos = Math.max(0, Math.min(st.lp.steps.length, pos)); paintLoop(q); };
+  $$('[data-lp]', host).forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.lp, n = st.lp.steps.length;
+    go(k === 'restart' ? 0 : k === 'back' ? st.lp.pos - 1 : k === 'next' ? st.lp.pos + 1 : n);
+  }));
+  host.addEventListener('click', e => {
+    const c = e.target.closest('.strip.turns i[data-pos]'); if (c) go(+c.dataset.pos);
+  });
+  let tt = null;
+  st.lp.tester = lineEditor(q, $('[data-lp-tester]', host), {
+    initial: store.get(q.id + ':seq') || '', placeholder: f.tester ? `try: ${f.tester}` : 'range(1, 10)', label: 'Something for a loop to walk through',
+    onEnter: () => loadSeq(q),
+    onChange: v => { store.set(q.id + ':seq', v); clearTimeout(tt); tt = setTimeout(() => loadSeq(q), 350); },
+  });
+  paintLoop(q);
+}
+async function loadLoop(q) {
+  const f = q.loop, st = S[q.id];
+  try { st.lp.res = await Py.call('trace', { src: f.programs[st.lp.prog].code, var: q.var, setup: q.setup, vars: f.watch || [], limit: f.limit || 60 }); }
+  catch (e) { st.lp.res = { error: failText(e) }; }
+  // one step per turn; a turn with an inner loop becomes one step per inner turn
+  const steps = [];
+  if (st.lp.res && !st.lp.res.error) st.lp.res.turns.forEach((t, i) => {
+    if (t.inner && t.inner.turns.length) t.inner.turns.forEach((u, j) => steps.push({ i, j, t, u, out: u.out }));
+    else steps.push({ i, j: null, t, out: t.out });
+  });
+  st.lp.steps = steps; st.lp.pos = 0;
+  paintLoop(q);
+}
+async function loadSeq(q) {
+  const st = S[q.id], expr = st.lp.tester.state.doc.toString().trim().replace(/:\s*$/, '');
+  if (!expr) { st.lp.seq = null; paintSeq(q); return; }
+  try { st.lp.seq = await Py.call('seq', { expr, setup: q.setup }); }
+  catch (e) { st.lp.seq = { error: failText(e) }; }
+  paintSeq(q);
+}
+function paintSeq(q) {
+  const host = $(`[data-loop="${q.id}"]`), says = $('[data-lp-says]', host), box = $('[data-lp-seq]', host), r = S[q.id].lp.seq;
+  if (!r) { says.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
+  if (r.error) { says.innerHTML = `<span class="s-err">${esc(r.error)}</span>`; box.innerHTML = ''; return; }
+  says.innerHTML = `<span class="fl-chip yes">${r.n} turn${r.n === 1 ? '' : 's'} · ${esc(r.kind)}</span>`;
+  box.innerHTML = r.n ? r.items.map((x, i) => `<span class="seq-box"><i>${i + 1}</i>${esc(x)}</span>`).join('') + (r.more ? `<span class="seq-more">… ${r.more} more</span>` : '') : '<span class="s-note">nothing: the loop body never runs</span>';
+}
+function paintLoop(q) {
+  const st = S[q.id], lp = st.lp, host = $(`[data-loop="${q.id}"]`); if (!host) return;
+  const f = q.loop, r = lp.res, lines = f.programs[lp.prog].code.split('\n');
+  const code = $('[data-lp-code]', host), out = $('[data-lp-out]', host), status = $('[data-lp-status]', host);
+  const ln = (l, k, state = '', chip = '') => `<div class="fl-ln ${state}"><span class="fl-no">${k + 1}</span><code>${hl(l)}</code>${chip}</div>`;
+  $('[data-lp="back"]', host).disabled = lp.pos === 0;
+  $('[data-lp="next"]', host).disabled = !r || !!r.error || lp.pos >= lp.steps.length;
+  $('[data-lp="end"]', host).disabled = !r || !!r.error || lp.pos >= lp.steps.length;
+  if (!r || r.error) {
+    code.innerHTML = lines.map((l, k) => ln(l, k)).join('');
+    out.innerHTML = r && r.error ? `<div class="s-err">${esc(r.error)}</div>` : '<div class="s-note">waiting for Python…</div>';
+    status.textContent = ''; $('[data-lp-strip]', host).innerHTML = ''; $('[data-lp-innerwrap]', host).hidden = true;
+    return;
+  }
+  const n = lp.steps.length, pos = lp.pos, cur = pos ? lp.steps[pos - 1] : null, t = cur && cur.t, u = cur && cur.u;
+  const done = pos === n && !r.endless, turns = r.turns.length, isFor = r.kind === 'for';
+  const chipFor = (res, turn, k, total) => turn.test
+    ? `<span class="fl-chip ${turn.test[0] ? 'yes' : 'no'}">→ ${turn.test[1] ? esc(turn.test[1]) + ', counts as ' : ''}${turn.test[0] ? 'True' : 'False'}${turn.test[0] ? `, turn ${turn.n}` : ': the loop ends'}</span>`
+    : `<span class="fl-chip yes">→ turn ${turn.n} of ${total}: ${esc(res.target)} = ${esc(turn.val)}</span>`;
+  const state = {}, chips = {};
+  const litBody = (res, on) => { for (let L = res.body[0]; L <= res.body[1]; L++) state[L] = on ? 'lit' : 'dim'; };
+  if (!cur) {
+    state[r.line] = 'test'; litBody(r, false);
+    chips[r.line] = `<span class="fl-chip skip">${isFor ? `${r.count} turn${r.count === 1 ? '' : 's'} to go` : 'not checked yet'}</span>`;
+    if (r.after) for (let L = r.after[0]; L <= r.after[1]; L++) state[L] = 'dim';
+  } else {
+    state[r.line] = 'test'; chips[r.line] = chipFor(r, t, cur.i, turns);
+    const ending = t.test && !t.test[0];
+    litBody(r, !ending);
+    if (t.inner && u) {
+      // the inner loop: its own chip and body; the rest of the outer body stays lit
+      state[t.inner.line] = 'test'; chips[t.inner.line] = chipFor(t.inner, u, cur.j, t.inner.turns.length);
+      for (let L = t.inner.body[0]; L <= t.inner.body[1]; L++) state[L] = 'lit';
+    }
+    if (r.after) for (let L = r.after[0]; L <= r.after[1]; L++) state[L] = done ? 'lit' : 'dim';
+    if (done && r.after) chips[r.after[0]] = '<span class="fl-chip yes">→ after the loop</span>';
+    if (r.endless && pos === n) { chips[r.line] = `<span class="fl-chip no">→ still True after ${turns} turns: this loop never ends</span>`; }
+  }
+  code.innerHTML = lines.map((l, k) => ln(l, k, state[k + 1] || '', chips[k + 1] || '')).join('');
+  // output so far: this step's lines marked
+  const shown = [...r.before.map(x => ['old', x])];
+  lp.steps.slice(0, pos).forEach((s, k) => s.out.forEach(x => shown.push([k === pos - 1 ? 'new' : 'old', x])));
+  if (done) { r.after_out.forEach(x => shown.push(['new', x])); if (r.after_error) shown.push(['err', r.after_error]); }
+  if (cur && cur.t.err) shown.push(['err', cur.t.err]);
+  if (r.endless && pos === n) shown.push(['err', `… and on, and on. Stopped after ${turns} turns.`]);
+  out.innerHTML = shown.length ? shown.map(([c, x]) => `<div class="${c === 'err' ? 's-err' : 's-out'}${c === 'new' ? ' new' : ''}">${esc(x)}</div>`).join('') : '<div class="s-note">(nothing yet)</div>';
+  out.scrollTop = out.scrollHeight;
+  // status: which turn, and the watched variables after it
+  const vars = t && t.vars ? Object.entries(u && u.vars ? u.vars : t.vars).map(([k, v]) => `<code>${esc(k)} = ${esc(v)}</code>`).join(' ') : '';
+  status.innerHTML = !cur ? (isFor ? `before the loop: ${r.count} turn${r.count === 1 ? '' : 's'} to go` : 'before the loop')
+    : r.endless && pos === n ? `still going after ${turns} turns: the check never becomes False ${vars}`
+    : done ? `finished after ${isFor ? turns : turns - 1} turn${turns === 1 ? '' : 's'} ${vars}`
+    : t.test && !t.test[0] ? `the check is False, so the loop ends ${vars}`
+    : `${t.inner && u ? `turn ${t.n}, inner turn ${u.n}` : `turn ${t.n}${isFor ? ` of ${turns}` : ''}`} ${vars}`;
+  // the strip of turns (outer), and the inner strip for the current turn
+  const firstStep = i => lp.steps.findIndex(s => s.i === i), lastStep = i => lp.steps.map(s => s.i).lastIndexOf(i);
+  const few = turns <= 16;
+  $('[data-lp-maplabel]', host).textContent = isFor ? `Every turn of the loop: ${esc(r.target)} takes each value in turn` : 'Every turn of the loop: the check, then the body';
+  $('[data-lp-strip]', host).innerHTML = `<div class="cells${turns > 8 ? ' many' : ''}">${r.turns.map((x, i) => {
+    const ends = x.test && !x.test[0], here = cur && i === cur.i;
+    const cls = ends ? 'be' : cur && i <= cur.i ? 'b0' : 'bn';
+    const label = ends ? 'stop' : isFor ? x.val.replace(/^'(.*)'$/, '$1') : x.n;
+    return `<i class="${cls}${here ? ' cur' : ''}" data-pos="${ends ? lastStep(i) + 1 : (here ? lastStep(i) : firstStep(i)) + 1}" title="turn ${x.n}">${few ? esc(String(label)) : ''}</i>`;
+  }).join('')}${r.endless ? '<i class="berr" title="never ends">∞</i>' : ''}</div>`;
+  const wrap = $('[data-lp-innerwrap]', host);
+  if (t && t.inner && t.inner.turns.length) {
+    wrap.hidden = false;
+    $('[data-lp-inner]', host).innerHTML = `<div class="cells">${t.inner.turns.map((x, j) => `<i class="${u && j < u.n ? 'b1' : 'bn'}${u && j === u.n - 1 ? ' cur' : ''}" data-pos="${firstStep(t.n - 1) + j + 1}" title="inner turn ${x.n}">${esc(String(x.val != null ? x.val.replace(/^'(.*)'$/, '$1') : x.n))}</i>`).join('')}</div>`;
+  } else wrap.hidden = true;
+  // light the box of the drawn list this turn is about (both loops, for a loop inside a loop)
+  if ($(`[data-row="${q.id}"]`)) {
+    const idxs = cur && !done ? [t.idx, u && u.idx].filter(x => x != null) : [];
+    applyHL(q, idxs.length ? { idxs } : null);
+  }
+}
+
 /* ---------- the >>> prompt under each picture ---------- */
 async function shellRun(q, code, opts = {}) {
   const st = S[q.id]; code = code.trim(); if (!code) return null;
   if (opts.history !== false) { st.hist.push(code); st.hp = st.hist.length; }
   let r;
   try { r = await Py.call('shell', { qid: q.id, src: code, var: q.var, vars: q.vars, setup: q.setup }); }
-  catch (e) { logShell(q, { code, lines: [['err', failText(e)]] }); return null; }
+  catch (e) { const entry = { code, lines: [['err', failText(e)]] }; logShell(q, entry); return entry; }
   logShell(q, { code, lines: r.lines });
   st.vals = r.state;
   renderPicture(q, r.hl);
   return r;
 }
+/* The first few lines of a long output, then "… N more lines": for loops that print hundreds of times. */
+function foldLines(lines, keep = 8) {
+  return lines.length > keep + 2 ? [...lines.slice(0, keep), `… ${lines.length - keep} more line${lines.length - keep === 1 ? '' : 's'}`] : lines;
+}
 function logShell(q, entry) {
   const log = $(`[data-log="${q.id}"]`), div = document.createElement('div');
+  const outs = entry.lines.filter(l => l[0] === 'out');
+  if (outs.length > 14) { const keep = new Set(foldLines(outs.map(l => l[1]), 10)); let k = 0; entry = { ...entry, lines: entry.lines.flatMap(l => l[0] !== 'out' ? [l] : k++ < 10 ? [l] : k === 11 ? [['note', `… ${outs.length - 10} more lines`]] : []) }; void keep; }
   const tip = l => l[0] === 'err' && /U\+201[89CD]/.test(l[1]) ? `<div class="s-note">Those are curly quotes from a word processor. Retype them as straight quotes ' or ".</div>` : '';
   div.innerHTML = `<div class="s-in">&gt;&gt;&gt; <b>${hl(entry.code)}</b></div>` + entry.lines.map(l => `<div class="s-${l[0]}">${esc(l[1])}</div>${tip(l)}`).join('');
   log.appendChild(div);
@@ -608,6 +765,8 @@ function gradeCore(q, res, raw) {
     ran: !res.syntax,
     // each top-level if statement, tried with every q.probe value: {line, outs: [printed lines | null], ops, elifs, else}
     ifs: res.probe || [],
+    // each top-level for/while as the script ran it: {line, kind, out: [printed lines], iter, target, test, depth (2 = a loop inside it)}
+    loops: (res.entries || []).filter(e => e.kind === 'for' || e.kind === 'while'),
     // the student's own comments under starter heading "# n." (all their comments if that heading is gone)
     notes: n => {
       const lines = raw.split('\n'), head = new RegExp('^\\s*#\\s*' + n + '\\.'), anyHead = /^\s*#\s*\d+\./;
@@ -623,11 +782,11 @@ function gradeCore(q, res, raw) {
   const lines = raw.split('\n'), heads = {};
   lines.forEach((l, i) => { const m = /^\s*#\s*(\d+)\./.exec(l); if (m && starterComments.has(commentText(l)) && !(m[1] in heads)) heads[m[1]] = i + 1; });
   const order = Object.values(heads).sort((a, b) => a - b);
-  const ifsUnder = ns => {
+  const under = (list, ns) => {
     const spans = ns.filter(n => n in heads).map(n => [heads[n], order.find(h => h > heads[n]) || Infinity]);
-    return spans.length ? ctx.ifs.filter(b => spans.some(([a, z]) => b.line > a && b.line < z)) : ctx.ifs;
+    return spans.length ? list.filter(b => spans.some(([a, z]) => b.line > a && b.line < z)) : list;
   };
-  return q.tasks.map((t, k) => { try { return !!t.check({ ...ctx, ifs: ifsUnder(t.under || [k + 1]) }); } catch (e) { return false; } });
+  return q.tasks.map((t, k) => { try { const ns = t.under || [k + 1]; return !!t.check({ ...ctx, ifs: under(ctx.ifs, ns), loops: under(ctx.loops, ns) }); } catch (e) { return false; } });
 }
 function grade(q, res) {
   const d = gradeCore(q, res, S[q.id].ta.value);
@@ -680,7 +839,7 @@ function composeCell(q, t, k, r) {
   const input = cellText(q, k).trim();
   if (c.why) {
     if (!input) return { state: 'empty', lines: [] };
-    const ok = c.ok ? c.ok.test(input) : input.length >= 15 && (c.re || WHY_RE).test(input.toLowerCase());
+    const ok = c.ok ? (typeof c.ok === 'function' ? c.ok(input) : c.ok.test(input)) : input.length >= 15 && (c.re || WHY_RE).test(input.toLowerCase());
     return ok
       ? { state: 'pass', lines: [['ok', c.okMsg || '✓ answered. Your teacher grades the explanation.']] }
       : { state: 'fail', lines: [['note', c.whyHint || 'Say what Python does (the error) and why tuples behave that way.']] };
@@ -698,10 +857,19 @@ function composeCell(q, t, k, r) {
     const notes = [...(trap ? [['note', trap[1]]] : []), ...(sets ? [['note', `${v} is already set, and Check changes it each time. Leave out your own ${v} = line.`]] : [])];
     const said = p => p.length ? p.map(s => `"${s}"`).join(' then ') : 'nothing';
     if (r.error && !r.v) return { state: 'fail', lines: [['err', r.error], ...notes] };
-    if (r.error) return { state: 'fail', lines: [['err', `✗ When ${v} is ${r.v}, your code stops with an error:`], ['err', r.error], ...notes] };
-    if (r.assert_failed) return { state: 'fail', lines: [['err', `✗ When ${v} is ${r.v}, your code prints ${said(r.printed)}. It should print ${said(r.want ? [r.want] : [])}.`], ...notes] };
+    const who = vals.length > 1 ? `When ${v} is ${r.v}, your code` : 'Your code';
+    if (r.error) return { state: 'fail', lines: [['err', `✗ ${who} stops with an error:`], ['err', r.error], ...notes] };
+    if (r.assert_failed && r.at) {
+      // several expected lines: name the first one that differs
+      const where = r.n_got !== r.n_want && (r.got_line == null || r.want_line == null)
+        ? `prints ${r.n_got} line${r.n_got === 1 ? '' : 's'}. It should print ${r.n_want}.`
+        : `prints "${r.got_line}" on line ${r.at}. That line should be "${r.want_line}".`;
+      return { state: 'fail', lines: [['err', `✗ ${who} ${where}`], ...notes] };
+    }
+    if (r.assert_failed) return { state: 'fail', lines: [['err', `✗ ${who} prints ${said(r.printed)}. It should print ${said(r.want ? [r.want] : [])}.`], ...notes] };
     if (c.must && !c.must[0].test(input)) return { state: 'fail', lines: [...(vals.length > 1 ? [['ok', 'Right every time…']] : []), ['note', c.must[1]]] };
-    return { state: 'pass', lines: [['ok', vals.length > 1 ? `✓ right for every ${v} we tried: ${vals.map(pyLit).join(', ')}` : `✓ it runs and prints "${c.prog(vals[0])}"`]] };
+    const one = c.prog(vals[0]), ran = Array.isArray(one) ? `✓ it runs and prints ${one.length} line${one.length === 1 ? '' : 's'}: ${one.slice(0, 3).map(x => `"${x}"`).join(', ')}${one.length > 3 ? ', …' : ''}` : `✓ it runs and prints "${one}"`;
+    return { state: 'pass', lines: [['ok', vals.length > 1 ? `✓ right for every ${v} we tried: ${vals.map(pyLit).join(', ')}` : ran]] };
   }
   if (r.not_expr) return { state: 'fail', lines: [['note', `For this task, show a value: for example print(${q.var}[0]) or just ${q.var}[0]. No = or del here.`]] };
   if (r.error) return { state: 'fail', lines: [...P, ['err', r.error]] };
@@ -765,8 +933,10 @@ function buildTasks(q) {
       const r = await shellRun(q, t.cell.tryCode, { history: false });
       const err = r && r.lines.find(l => l[0] === 'err'), out = r ? r.lines.filter(l => l[0] === 'out') : [];
       // a SyntaxError (like a missing indent) stops Python before anything runs: no traceback
+      // output before the error is folded, so 500 lines of Hello! don't bury the message
+      const shown = foldLines(out.map(l => l[1]), 6).map(x => `<div class="s-out">${esc(x)}</div>`).join('');
       $('[data-try-res]', pc).innerHTML = err
-        ? `<div class="s-err">${esc((/^(Syntax|Indentation|Tab)Error/.test(err[1]) ? '' : 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\n') + err[1])}</div>`
+        ? shown + `<div class="s-err">${esc((/^(Syntax|Indentation|Tab)Error|^LoopLimit|^Stopped after/.test(err[1]) ? '' : 'Traceback (most recent call last):\n  File "<stdin>", line 1, in <module>\n') + err[1])}</div>`
         : out.length ? out.map(l => `<div class="s-out">${esc(l[1])}</div>`).join('') : '<div class="s-ok">(no error)</div>';
     });
     const addBtn = $('[data-addscript]', pc);
@@ -840,7 +1010,7 @@ async function buildReport() {
       const c = S[q.id].cells[i], typed = (S[q.id].inputs[i] || '').trim();
       sum.push(`#   [${S[q.id].done[i] ? 'x' : ' '}] ${i + 1}. ${plain(task.text.replace(/<\/?pre>/g, '\n')).trim().replace(/\s*\n\s*/g, ' / ')}  (${task.pts} pts)`);
       if (task.cell && task.cell.why) sum.push(`#          explanation box: ${typed ? typed.replace(/\s*\n\s*/g, ' / ') : '(empty)'}`);
-      else if (task.cell) sum.push(`#          practice check: ${c && c.state === 'pass' ? 'passed' : 'not passed'}${typed ? '   typed: ' + typed : ''}`);
+      else if (task.cell) sum.push(`#          practice check: ${c && c.state === 'pass' ? 'passed' : 'not passed'}${typed ? '   typed: ' + typed.replace(/\s*\n\s*/g, ' / ') : ''}`);
     });
     const comment = s => s.split('\n').map(l => '# ' + l).join('\n');
     let outTxt = res.syntax ? comment(res.syntax) : (res.outputs.map(comment).join('\n') || '# (nothing printed)');
@@ -902,13 +1072,13 @@ function setStatus(state, detail) {
 Py.on((state, d) => {
   if (state === 'ready') {
     S.version = d.version; setStatus('ready', d.version);
-    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } });
+    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } });
   } else setStatus(state, d);
 });
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
-  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q);
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
     row.addEventListener('click', e => {

@@ -40,6 +40,37 @@ def _input(prompt=""):
 builtins.input = _input
 
 
+class LoopLimit(Exception):
+    """A loop ran far longer than any homework answer should."""
+
+
+LoopLimit.__module__ = "builtins"  # shows as "LoopLimit: ..." like a built-in error
+STEP_LIMIT = 20000
+
+
+class Budget:
+    """Stops student code that never ends (while count < 3 with no count = count + 1)
+    cleanly, with its output so far, instead of letting the page kill Python after 5 s."""
+
+    def __init__(self, n=STEP_LIMIT):
+        self.n, self.k = n, 0
+
+    def __enter__(self):
+        def tracer(frame, event, arg):
+            if event == "line":
+                self.k += 1
+                if self.k > self.n:
+                    raise LoopLimit(f"Stopped after {self.n} steps. Does this loop ever end?")
+            return tracer
+        self.old = sys.gettrace()
+        sys.settrace(tracer)
+        return self
+
+    def __exit__(self, *exc):
+        sys.settrace(self.old)
+        return False
+
+
 # ---------- helpers ----------
 
 def simple(v, depth=0):
@@ -81,9 +112,23 @@ def last_line(e):
     return lines[-1] if lines else type(e).__name__
 
 
+MAX_CHARS = 200_000
+
+
+class _Bounded(io.StringIO):
+    """Keeps the first MAX_CHARS of output and drops the rest, so a loop that never
+    ends can't fill memory before the page stops it."""
+
+    def write(self, s):
+        room = MAX_CHARS - self.tell()
+        if room <= 0:
+            return len(s)
+        return super().write(s[:room])
+
+
 class Capture:
     def __enter__(self):
-        self.buf = io.StringIO()
+        self.buf = _Bounded()
         self.old = sys.stdout, sys.stderr
         sys.stdout = sys.stderr = self.buf
         return self
@@ -284,7 +329,7 @@ def shell(qid, src, var, setup, reset=False, vars=None):
     hl = None
     try:
         for node in tree.body:
-            with Capture() as cap:
+            with Capture() as cap, Budget():
                 if isinstance(node, ast.Expr):
                     value = eval(compile(ast.Expression(node.value), SHELL, "eval"), ns)
                 else:
@@ -318,10 +363,24 @@ def shell(qid, src, var, setup, reset=False, vars=None):
 
 # ---------- homework.py ----------
 
+def _loop_depth(node):
+    """1 for a loop, 2 for a loop with a loop inside it, ..."""
+    return 1 + max((_loop_depth(n) for n in ast.walk(node) if n is not node and isinstance(n, (ast.For, ast.While))), default=0)
+
+
+def _loop_info(node):
+    """What a top-level for/while is made of, for grading: never the student's whole code."""
+    if isinstance(node, ast.For):
+        return {"kind": "for", "target": ast.unparse(node.target), "iter": ast.unparse(node.iter), "depth": _loop_depth(node)}
+    if isinstance(node, ast.While):
+        return {"kind": "while", "test": ast.unparse(node.test), "depth": _loop_depth(node)}
+    return {"kind": type(node).__name__.lower()}
+
+
 def _run_node(node, ns):
-    entry = {"line": node.lineno, "end": node.end_lineno, "out": [], "silent": silent(node)}
+    entry = {"line": node.lineno, "end": node.end_lineno, "out": [], "silent": silent(node), **_loop_info(node)}
     try:
-        with Capture() as cap:
+        with Capture() as cap, Budget():
             exec(compile(ast.Module(body=[node], type_ignores=[]), SCRIPT, "exec"), ns)
     except BaseException as e:  # noqa: BLE001
         entry["error"] = fmt_exc(e, SCRIPT)
@@ -532,7 +591,7 @@ def cells(setup, var, specs, vars=None):
         register(CELL, inp)
         if kind == "stmt":
             try:
-                with Capture() as cap:
+                with Capture() as cap, Budget():
                     exec(compile(inp, CELL, "exec"), ns)
             except BaseException as e:  # noqa: BLE001
                 out.append({"state": "fail", "printed": cap.lines(), "error": last_line(e)})
@@ -564,7 +623,7 @@ def cells(setup, var, specs, vars=None):
             continue
         scratch = {key: copy.deepcopy(v) for key, v in ns.items() if key != "__builtins__"}
         try:
-            with Capture() as cap:
+            with Capture() as cap, Budget():
                 value = eval(compile(tree, CELL, "eval"), scratch)
         except BaseException as e:  # noqa: BLE001
             out.append({"state": "fail", "printed": cap.lines(), "error": last_line(e)})
@@ -585,9 +644,9 @@ def cells(setup, var, specs, vars=None):
 
 
 def _said(lines):
-    """What some print() calls showed, compared loosely: case, spacing and curly quotes don't matter."""
+    """What some print() calls showed, compared loosely: case, spacing, commas and curly quotes don't matter."""
     s = " ".join(lines).lower().replace("\u2018", "'").replace("\u2019", "'").replace("\u201c", '"').replace("\u201d", '"')
-    return " ".join(s.split())
+    return " ".join(s.replace(",", " ").split())
 
 
 def _prog_cell(inp, s, ns):
@@ -606,14 +665,22 @@ def _prog_cell(inp, s, ns):
         scratch[s["var"]] = v
         INPUTS = [str(v)] * 5
         try:
-            with Capture() as cap:
+            with Capture() as cap, Budget():
                 exec(code, scratch)
         except BaseException as e:  # noqa: BLE001
             return {"state": "fail", "v": repr(v), "printed": cap.lines(), "error": last_line(e)}
         finally:
             INPUTS = None
-        if _said(cap.lines()) != _said([want]):
-            return {"state": "fail", "v": repr(v), "printed": cap.lines(), "want": want, "assert_failed": True}
+        got = cap.lines()
+        if isinstance(want, list):
+            # one line per expected line, in order: name the first line that differs
+            if len(got) != len(want) or any(_said([a]) != _said([b]) for a, b in zip(got, want)):
+                k = next((i for i, (a, b) in enumerate(zip(got, want)) if _said([a]) != _said([b])), min(len(got), len(want)))
+                return {"state": "fail", "v": repr(v), "printed": got[:6], "want": want[:6], "assert_failed": True,
+                        "at": k + 1, "got_line": got[k] if k < len(got) else None, "want_line": want[k] if k < len(want) else None,
+                        "n_got": len(got), "n_want": len(want)}
+        elif _said(got) != _said([want]):
+            return {"state": "fail", "v": repr(v), "printed": got, "want": want, "assert_failed": True}
     return {"state": "pass"}
 
 
@@ -626,7 +693,154 @@ def peek(qid, expr, var, setup):
         return {"error": last_line(e)}
 
 
-FUNCS = {"shell": shell, "run": run, "step": step, "cells": cells, "peek": peek, "flow": flow}
+# ---------- for / while pictures ----------
+
+LOOP_LIMIT = 60
+
+
+def _watch(ns, vars):
+    return {v: repr(ns[v]) for v in vars if v in ns and not isinstance(ns[v], DRAWN)}
+
+
+def _box(node, ns, var, i=None):
+    """Which box of the drawn list this turn is about: the turn number when the loop walks
+    the list itself, else the first list[i]-style look-up in the body."""
+    seq = ns.get(var)
+    if not isinstance(seq, DRAWN) or isinstance(seq, dict):
+        return None
+    if isinstance(node, ast.For) and isinstance(node.iter, ast.Name) and node.iter.id == var and i is not None:
+        return i if i < len(seq) else None
+    for n in ast.walk(ast.Module(body=node.body, type_ignores=[])):
+        if (isinstance(n, ast.Subscript) and isinstance(n.value, ast.Name) and n.value.id == var
+                and not isinstance(n.slice, ast.Slice)):
+            k = _pos(n.slice, ns, seq)
+            if k is not None:
+                return k
+    return None
+
+
+def _run_body(body, ns, var, vars, limit, depth):
+    """Run a loop body once, statement by statement. A loop inside it is traced too
+    (one level down), so the picture can step through the inner turns."""
+    out, inner, err = [], None, None
+    for st in body:
+        if isinstance(st, (ast.For, ast.While)) and depth < 2 and inner is None:
+            inner = _trace_loop(st, ns, var, vars, limit, depth + 1)
+            out += [l for t in inner["turns"] for l in t["out"]]
+            if inner.get("error") or inner.get("endless"):
+                err = inner.get("error"); break
+            continue
+        try:
+            with Capture() as cap:
+                exec(compile(ast.Module(body=[st], type_ignores=[]), "<loop>", "exec"), ns)
+            out += cap.lines()
+        except BaseException as e:  # noqa: BLE001
+            out += cap.lines(); err = last_line(e); break
+    return out, inner, err
+
+
+def _trace_loop(node, ns, var, vars, limit, depth=1):
+    is_for = isinstance(node, ast.For)
+    res = {"kind": "for" if is_for else "while", "line": node.lineno, "end": node.end_lineno,
+           "body": [node.body[0].lineno, node.body[-1].end_lineno], "turns": [], "endless": False}
+    if is_for:
+        res["target"], res["iter"] = ast.unparse(node.target), ast.unparse(node.iter)
+        try:
+            items = list(eval(compile(ast.Expression(node.iter), "<loop>", "eval"), ns))
+        except BaseException as e:  # noqa: BLE001
+            res["error"] = last_line(e); return res
+        res["count"] = len(items)
+        assign = ast.fix_missing_locations(ast.Module(body=[ast.Assign(targets=[node.target], value=ast.Name(id="__item", ctx=ast.Load()))], type_ignores=[]))
+        assign = compile(assign, "<loop>", "exec")
+        for i, item in enumerate(items[:limit]):
+            ns["__item"] = item
+            try:
+                exec(assign, ns)
+            except BaseException as e:  # noqa: BLE001
+                res["error"] = last_line(e); break
+            val = ns[node.target.id] if isinstance(node.target, ast.Name) else item
+            turn = {"n": i + 1, "val": repr(val), "idx": _box(node, ns, var, i)}
+            turn["out"], turn["inner"], err = _run_body(node.body, ns, var, vars, limit, depth)
+            turn["vars"] = _watch(ns, vars)
+            res["turns"].append(turn)
+            if err:
+                res["error"] = err; break
+        ns.pop("__item", None)
+        res["truncated"] = len(items) > limit
+        return res
+    test = compile(ast.Expression(node.test), "<loop>", "eval")
+    for i in range(limit + 1):
+        try:
+            got = eval(test, ns)
+        except BaseException as e:  # noqa: BLE001
+            res["error"] = last_line(e); break
+        turn = {"n": i + 1, "test": [bool(got), None if isinstance(got, bool) else repr(got)], "idx": None, "out": [], "inner": None}
+        if not got:
+            turn["vars"] = _watch(ns, vars); res["turns"].append(turn); break
+        if i == limit:
+            res["endless"] = True; break
+        turn["idx"] = _box(node, ns, var)
+        turn["out"], turn["inner"], err = _run_body(node.body, ns, var, vars, limit, depth)
+        turn["vars"] = _watch(ns, vars)
+        res["turns"].append(turn)
+        if err:
+            res["error"] = err; break
+    return res
+
+
+def trace(src, var, setup=None, vars=None, limit=LOOP_LIMIT):
+    """For the picture: every turn of the first loop in src (and of a loop inside it):
+    the loop variable, what the body printed, which box of var it touched, and the
+    watched variables afterwards. A while loop still True after `limit` turns is reported
+    as endless instead of run forever."""
+    try:
+        tree = ast.parse(src, "<loop>")
+    except SyntaxError as e:
+        return {"error": last_line(e)}
+    at = next((k for k, n in enumerate(tree.body) if isinstance(n, (ast.For, ast.While))), None)
+    if at is None:
+        return {"error": "There is no for or while loop here."}
+    ns = new_ns(setup)
+    before = []
+    try:
+        with Capture() as cap:
+            exec(compile(ast.Module(body=tree.body[:at], type_ignores=[]), "<loop>", "exec"), ns)
+        before = cap.lines()
+    except BaseException as e:  # noqa: BLE001
+        return {"error": last_line(e)}
+    res = _trace_loop(tree.body[at], ns, var, vars or [], limit)
+    res["before"] = before
+    after = tree.body[at + 1:]
+    res["after"] = [after[0].lineno, after[-1].end_lineno] if after else None
+    res["after_out"] = []
+    if after and not res.get("error") and not res["endless"]:
+        try:
+            with Capture() as cap:
+                exec(compile(ast.Module(body=after, type_ignores=[]), "<loop>", "exec"), ns)
+        except BaseException as e:  # noqa: BLE001
+            res["after_error"] = last_line(e)
+        res["after_out"] = cap.lines()
+    return res
+
+
+def seq(expr, setup=None, limit=LOOP_LIMIT):
+    """What a for loop would walk through: list(expr), item by item."""
+    try:
+        v = eval(expr, new_ns(setup))
+        kind = type(v).__name__
+        if isinstance(v, (str, bytes, dict)) or not hasattr(v, "__iter__"):
+            if isinstance(v, (str, dict)):
+                items = list(v)
+            else:
+                return {"error": f"a for loop can't walk through {kind}: {repr(v)[:60]} isn't a list or a range"}
+        else:
+            items = list(v)
+    except BaseException as e:  # noqa: BLE001
+        return {"error": last_line(e)}
+    return {"kind": kind, "n": len(items), "items": [repr(x) for x in items[:limit]], "more": max(0, len(items) - limit)}
+
+
+FUNCS = {"shell": shell, "run": run, "step": step, "cells": cells, "peek": peek, "flow": flow, "trace": trace, "seq": seq}
 
 
 def dispatch(fn, args_json):

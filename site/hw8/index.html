@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homework 8 · Loops</title>
+<meta name="description" content="Python practice on for and while loops and range(): programs you can step through one turn at a time, practice checks and a real Python editor.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 8</div>
+    <h1><span class="lp">Loops</span> Lab</h1>
+    <p class="lede">A loop runs the same block of lines again and again. <strong>for</strong> takes one turn per item in a list or a <code>range()</code>. <strong>while</strong> keeps taking turns as long as its check is <code>True</code>.</p>
+    <div class="idea">
+      <div class="kind-card is-loop">
+        <h3><span class="glyph">for</span> One turn per item</h3>
+        <div class="demo pre">for x in [1, 2, 3]:
+    print(x)</div>
+        <ul>
+          <li>Each turn, <code>x</code> is the next item, then the block runs.</li>
+          <li><code>range(1, 6)</code> makes 1, 2, 3, 4, 5: it <strong>stops before</strong> the second number.</li>
+          <li>A colon <code>:</code> ends the <code>for</code> line, and the block is indented 4 spaces.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-loop">
+        <h3><span class="glyph">while</span> Keep going while True</h3>
+        <div class="demo pre">while coins &lt; 1000:
+    coins = coins + 67</div>
+        <ul>
+          <li>Before every turn, Python checks the condition. <code>False</code> ends the loop.</li>
+          <li>Something in the block must <strong>change</strong> what the check looks at, or it never ends.</li>
+          <li>A loop inside a loop: the inner one runs all its turns on every outer turn.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Press <em>Next turn</em> and watch the loop go round.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="loop">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Wizard's Potion Assembly Line</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">A wizard has a list of potion ingredients and wants to process them one at a time.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="row-wrap own-tint"><div class="var-name">wizard_list = <span class="badge" data-badge="q1"></span></div><span class="brk" data-open="q1">[</span><div class="row" data-row="q1"></div><span class="brk" data-close="q1">]</span></div>
+      <div class="loop" data-loop="q1"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="wizard_list[0]">wizard_list[0]</button>
+        <button type="button" class="btn" data-run="q1" data-code="len(wizard_list)">len(wizard_list)</button>
+        <button type="button" class="btn" data-run="q1" data-code="list(range(1, 6))">list(range(1, 6))</button>
+        <button type="button" class="btn" data-run="q1" data-code="list(range(0, 3))">list(range(0, 3))</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">Pick <em>First three, by number</em> and step through it: <code>i</code> is 0, then 1, then 2, and <code>wizard_list[i]</code> opens that box. Pick <em>Try: no indent</em> to see what Python says when the block isn't indented.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: wizard_list[5]" data-label="Python shell for wizard_list"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="loop">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Magic Coin Counter</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">A wizard starts with some coins. Each week they find new magic coins, but also have some stolen. This is the setup from class.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">four ints</span></div>
+      <div class="vals"><div class="val" data-val="q2:found_coins"></div><div class="val" data-val="q2:magic_coins"></div><div class="val" data-val="q2:stolen_coins"></div><div class="val" data-val="q2"></div></div>
+      <div class="loop" data-loop="q2"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="coins + magic_coins - stolen_coins">coins + magic_coins - stolen_coins</button>
+        <button type="button" class="btn" data-run="q2" data-code="coins = coins + magic_coins - stolen_coins">coins = coins + magic_coins - stolen_coins</button>
+        <button type="button" class="btn" data-run="q2" data-code="coins < 1000">coins &lt; 1000</button>
+        <button type="button" class="btn" data-run="q2" data-code="coins = found_coins">coins = found_coins</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">Press the second button a few times and watch the <code>coins</code> box: the line reads the old value, works out the new one, and puts it back in the same box. That is one week. A loop just presses the button for you.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: coins > 1000" data-label="Python shell for coins"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="loop">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Huge Hairy Pants</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">A wizard wants to build a two-level loop (a loop inside a loop) that pairs up every word with every word.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="row-wrap own-tint"><div class="var-name">hugehairypants = <span class="badge" data-badge="q3"></span></div><span class="brk" data-open="q3">[</span><div class="row" data-row="q3"></div><span class="brk" data-close="q3">]</span></div>
+      <div class="loop" data-loop="q3"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="len(hugehairypants)">len(hugehairypants)</button>
+        <button type="button" class="btn" data-run="q3" data-code="len(hugehairypants) * len(hugehairypants)">len(hugehairypants) * len(hugehairypants)</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip">Step through <em>From the lecture</em>: the outer loop holds one word while the inner loop runs through all three. Two boxes light up: the outer loop's word and the inner loop's word.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: hugehairypants[1]" data-label="Python shell for hugehairypants"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first, so you get the latest results.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached. A loop that never ends (Q2 task 4) is stopped after 20000 steps with a <code>LoopLimit</code> message and its output so far, and anything that still runs longer than 5 seconds is stopped too, so students can run it and see what happens without freezing the page.</p>
+    <ul>
+      <li><strong>How loops are graded.</strong> Every top-level <code>for</code> or <code>while</code> in homework.py is run as part of the script, and the page compares what that loop printed, line by line, with what the task asks for. The practice checks also run the student's loop with a <em>second</em> list or number (a three-item list, or 5 magic coins a week) so that typing the six names, or the 52 weekly totals, by hand doesn't pass. Where the task names a <code>range()</code> (task 2: <code>range(1, 6)</code>, Q2 task 1: <code>range(1, 53)</code>), the loop must actually use it. The bonus needs a loop inside a loop.</li>
+      <li>Each task has two checks. The <strong>practice check</strong> is the box under the task: students type just that task's code, and Check runs it and names the first line that comes out wrong. <em>Add to homework.py</em> copies it under the task's heading. The <strong>homework.py</strong> check is the graded one.</li>
+      <li>Written answers (Q1 tasks 3, 4 and 6; Q2 tasks 2, 3 and 4; bonus task 2) are graded by you. The page only checks that a comment was written under that task, and for the fact questions that the key idea is there (the numbers 1 to 9; indentation; the number 9).</li>
+      <li>The assignment answers go in one script. This page has an editor per question; the report puts the three one after another, so together they read as one script.</li>
+      <li>Some words were missing from the posted text, apparently lost in Classroom's formatting (“find new magic coins but also have some stolen”, “know when the wizard will have”, “every pair of the three words”). They are read from the code and the tasks around them.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>
