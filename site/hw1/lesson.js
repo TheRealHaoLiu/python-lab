@@ -20,6 +20,7 @@
     questions: [
       {
         id: 'q1', title: 'Try the Shell', var: 'a', vars: ['a', 'b', 'c', 'd', 'e'], setup: '', init: () => ({}),
+        cellSetup: 'a = 1\nb = 2\nc = "This is a String"\nd = 1.0',  // the picture starts empty; the check boxes don't
         starter: `# The lines from the homework. In the shell, a line like  a+b  shows its value
 # by itself. In a script it shows nothing: wrap it in print() to see it.
 a = 1
@@ -57,13 +58,13 @@ print(e)
           {
             pts: 10, text: 'Show <code>100/3</code> and <code>100//3</code>.',
             hint: 'Two prints. Look closely at the two answers: that difference is question 2 below.',
-            cell: { expect: '33', must: [/\/\//, 'That is 100//3, the whole-number division: write it with two slashes.'] },
+            cell: { expect: '33', free: true, must: [/\/\//, 'That is 100//3, the whole-number division: write it with two slashes.'] },
             check: c => c.printed('33.333333333333336') && c.printed('33') && has(c, /print\s*\(\s*100\s*\/\s*3\s*\)/) && has(c, /print\s*\(\s*100\s*\/\/\s*3\s*\)/),
           },
           {
             pts: 10, text: 'Show <code>2**100</code>, <code>29%7</code> and <code>20%3</code>.',
             hint: 'Three prints. <code>2**100</code> is a 31-digit number; Python does not mind.',
-            cell: { expect: BIG, must: [/\*\*/, 'Right number, but get it with the power operator: 2**100.'] },
+            cell: { expect: BIG, free: true, must: [/\*\*/, 'Right number, but get it with the power operator: 2**100.'] },
             check: c => c.printed(BIG) && c.printed('1') && c.printed('2') && has(c, /print\s*\(\s*2\s*\*\*\s*100\s*\)/) && has(c, /print\s*\(\s*29\s*%\s*7\s*\)/) && has(c, /print\s*\(\s*20\s*%\s*3\s*\)/),
           },
           {

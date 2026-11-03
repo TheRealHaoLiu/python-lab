@@ -934,7 +934,8 @@ function cellSpecs(q) {
       const vals = c.values || q.probe.values;
       return { kind: 'prog', input: cellText(q, k), want: vals.map(c.prog), var: q.probe.var, values: vals.map(pyLit) };
     }
-    return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !!input && !varRe.test(input) };
+    // skip: the answer was typed in instead of reached through the variable (cell.free: the task has no variable, like 100//3)
+    return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !c.free && !!input && !varRe.test(input) };
   });
 }
 function composeCell(q, t, k, r) {
@@ -986,7 +987,8 @@ async function checkCells(q) {
   const st = S[q.id];
   store.set(q.id + ':cells', JSON.stringify(st.inputs));
   let res;
-  try { res = await Py.call('cells', { setup: q.setup, var: q.var, vars: q.vars, specs: cellSpecs(q) }); }
+  // q.cellSetup: what the practice boxes start from when it differs from the picture's setup (hw1 starts its picture empty)
+  try { res = await Py.call('cells', { setup: q.cellSetup ?? q.setup, var: q.var, vars: q.vars, specs: cellSpecs(q) }); }
   catch (e) { res = q.tasks.map(() => ({ state: 'fail', error: failText(e) })); }
   st.cells = q.tasks.map((t, k) => composeCell(q, t, k, res[k]));
   q.tasks.forEach((t, k) => {
