@@ -439,3 +439,16 @@ pre.report{background:var(--code-bg);color:var(--code-ink);border-radius:10px;pa
 .fn-args{display:grid;gap:6px}
 .fn-ret{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .fn-ret .s-note{font-size:13px}
+
+/* ---------- f-string playground (extra) ---------- */
+.fspic{display:grid;gap:12px;min-width:0}
+.fspic .pc-in{flex:1 1 30ch}
+.fs-pieces{display:flex;flex-wrap:wrap;gap:8px 14px;font:14px var(--f-code)}
+.fs-pieces:empty{display:none}
+.fs-piece{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--kind-soft);border-radius:8px;padding:4px 10px}
+.fs-piece code{font-size:13px}
+.fs-piece .arrow{color:var(--muted)}
+.fs-piece b{color:var(--ink)}
+.fs-piece i{font-style:normal;font-size:12px;color:var(--muted)}
+
+.extras-h{font-size:26px;margin-top:8px}

@@ -648,6 +648,49 @@ async function runFn(q) {
   renderPicture(q, null);
 }
 
+/* ---------- f-string playground (extra: f-strings) ----------
+   q.fs = {start: 'f"…{name}…"'}. One line the student edits freely; Python evaluates the whole
+   f-string and, separately, every {…} piece, so each brace gets a chip showing what it became. */
+function buildFs(q) {
+  const f = q.fs, host = $(`[data-fs="${q.id}"]`); if (!f || !host) return;
+  const st = S[q.id];
+  host.innerHTML = `
+    <div class="pc"><div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><span class="pr h-f">print(</span><div class="pc-in" data-fs-in></div><span class="pr h-f">)</span></div></div>
+    <div class="fs-pieces" data-fs-pieces></div>
+    <div class="fm-out" data-fs-out></div>`;
+  let tt = null;
+  st.fs = { ed: lineEditor(q, $('[data-fs-in]', host), {
+    initial: store.get(q.id + ':fs') || f.start, placeholder: 'f"…{…}…"', label: 'An f-string to try',
+    onEnter: () => runFs(q),
+    onChange: v => { store.set(q.id + ':fs', v); clearTimeout(tt); tt = setTimeout(() => runFs(q), 350); },
+  }) };
+  runFs(q);
+}
+/* the {…} pieces of an f-string literal: the expression part, before a top-level ':' format spec or '=' */
+function fsPieces(src) {
+  const out = []; let depth = 0, start = -1;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === '{') { if (src[i + 1] === '{') { i++; continue; } if (depth === 0) start = i + 1; depth++; }
+    else if (c === '}') { if (depth === 0) { if (src[i + 1] === '}') i++; continue; } depth--; if (depth === 0 && start >= 0) { out.push(src.slice(start, i)); start = -1; } }
+  }
+  return out.map(p => { let d = 0, cut = p.length, eq = false; for (let i = 0; i < p.length; i++) { const c = p[i]; if ('([{'.includes(c)) d++; else if (')]}'.includes(c)) d--; else if (d === 0 && (c === ':' || c === '!')) { cut = i; break; } else if (d === 0 && c === '=' && p[i + 1] !== '=' && p[i - 1] !== '=' && !'<>!'.includes(p[i - 1] || '')) { cut = i; eq = true; break; } } return { whole: p, expr: p.slice(0, cut).trim(), spec: p.slice(cut), eq }; });
+}
+async function runFs(q) {
+  const st = S[q.id], host = $(`[data-fs="${q.id}"]`), src = st.fs.ed.state.doc.toString().trim();
+  const out = $('[data-fs-out]', host), pieces = $('[data-fs-pieces]', host);
+  if (!src) { out.innerHTML = ''; pieces.innerHTML = ''; return; }
+  const isF = /^[fF]["']/.test(src);
+  const parts = fsPieces(src);
+  let r;
+  try { r = await Py.call('peek', { qid: q.id, expr: src, var: q.var, setup: q.setup }); } catch (e) { r = { error: failText(e) }; }
+  if (r.error) { out.innerHTML = `<div class="s-err">${esc(r.error)}</div>`; pieces.innerHTML = ''; return; }
+  out.innerHTML = `<div class="fm-result">${esc(r.str !== undefined ? r.str : r.repr)}</div>${!isF && parts.length ? '<p class="fm-note">No <code>f</code> in front, so the braces are just text. Put <code>f</code> before the first quote.</p>' : ''}`;
+  if (!isF || !parts.length) { pieces.innerHTML = ''; return; }
+  const vals = await Promise.all(parts.map(async p => { try { const x = await Py.call('peek', { qid: q.id, expr: p.expr, var: q.var, setup: q.setup }); return x.error ? { err: x.error } : { repr: x.repr }; } catch (e) { return { err: failText(e) }; } }));
+  pieces.innerHTML = parts.map((p, i) => `<span class="fs-piece"><code>{${esc(p.whole)}}</code><span class="arrow">→</span>${vals[i].err ? `<span class="s-err">${esc(vals[i].err)}</span>` : `<b>${esc(vals[i].repr)}</b>${p.spec ? `<i>then ${p.eq ? 'written as name=value' : 'formatted with ' + esc(p.spec)}</i>` : ''}`}</span>`).join('');
+}
+
 /* ---------- the >>> prompt under each picture ---------- */
 async function shellRun(q, code, opts = {}) {
   const st = S[q.id]; code = code.trim(); if (!code) return null;
@@ -1253,14 +1296,14 @@ function setStatus(state, detail) {
 Py.on((state, d) => {
   if (state === 'ready') {
     S.version = d.version; setStatus('ready', d.version);
-    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); if (q.fn) runFn(q); });
+    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); if (q.fn) runFn(q); if (q.fs) runFs(q); });
   } else setStatus(state, d);
 });
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
   S[q.id].never = new Set(Object.entries(S[q.id].vals).filter(([, v]) => v.never).map(([k]) => k));
-  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q); buildFn(q);
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q); buildFn(q); buildFs(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
     row.addEventListener('click', e => {

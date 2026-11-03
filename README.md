@@ -17,6 +17,10 @@ Interactive Python homework for a middle-school class, live at
 Homeworks 1–4 were built after the fact (the class had passed them) so the whole course is
 here for the next student. Their points per task are the pages' own; the postings gave none.
 
+`site/fstrings/` is an **extra** (listed under "Extras" on the landing page): f-strings, which
+the course skips. Its playground (`js/app.js` buildFs) evaluates one editable f-string and shows
+what every `{…}` became.
+
 `site/hw9/` is an **unlisted draft** (not on the landing page, `noindex`): functions and modules,
 written from the book's chapter 7 before the teacher posted Homework 9, to be reworded to the
 real posting. It brings the function-machine picture (`js/app.js` buildFn: pick a function, type

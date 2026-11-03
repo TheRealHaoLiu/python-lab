@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Extra · f-strings</title>
+<meta name="description" content="An extra lesson on Python f-strings: braces that hold variables and expressions, format specs for decimals, commas and alignment, and a live playground that shows what each brace becomes.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Extra</div>
+    <h1><span class="s">f-strings</span> Lab</h1>
+    <p class="lede">The class taught <code>%s</code>. Real Python today mostly writes <strong>f-strings</strong>: put <code>f</code> before the quote, and write the variable itself inside <code>{braces}</code>. Nothing to count, nothing to line up, and the braces can hold maths, function calls and formatting instructions too. This page is extra: it is not one of the posted homeworks.</p>
+    <div class="idea">
+      <div class="kind-card is-str">
+        <h3><span class="glyph">f"…"</span> Braces are holes</h3>
+        <div class="demo pre">name = "Owen"
+age = 12
+print(f"{name} is {age}. Next year: {age + 1}")</div>
+        <ul>
+          <li><code>f</code> before the first quote turns the braces on.</li>
+          <li>A brace holds a variable, or any expression: <code>{age + 1}</code>, <code>{len(name)}</code>.</li>
+          <li>Numbers need no <code>str()</code>; Python turns them into text for you.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-str">
+        <h3><span class="glyph">:</span> After the colon: how to show it</h3>
+        <div class="demo pre">{total:.2f}   → 37.50
+{big:,}       → 1,234,567
+{item:&lt;10}    → pizza     (padded)
+{qty=}        → qty=3</div>
+        <ul>
+          <li><code>.2f</code> two decimals, <code>,</code> thousands separators.</li>
+          <li><code>&lt;10</code> left-aligned in 10 spaces, <code>&gt;8</code> right-aligned in 8.</li>
+          <li><code>{qty=}</code> prints the name and the value: a debugging trick.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Edit the f-string in the playground and watch each brace turn into a value.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Save your report at the bottom if you want to keep it.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="str">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Name Tags</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">The basics: a variable in a brace, two variables, maths in a brace, what happens without the <code>f</code>, and turning a <code>%s</code> line from Homework 8 into an f-string.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">the f-string playground</span></div>
+      <div class="vals"><div class="val" data-val="q1"></div><div class="val" data-val="q1:age"></div><div class="val" data-val="q1:week"></div><div class="val" data-val="q1:coins"></div></div>
+      <div class="fspic" data-fs="q1"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="f'{name} has {len(name)} letters'">f'{name} has {len(name)} letters'</button>
+        <button type="button" class="btn" data-run="q1" data-code="f'{age * 2}'">f'{age * 2}'</button>
+        <button type="button" class="btn" data-run="q1" data-code="name = 'Ada'">name = 'Ada'</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="'Hello, {name}!'">Try: 'Hello, {name}!' (no f)</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="f'Hello, {nmae}!'">Try: f'Hello, {nmae}!'</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">Change <code>name</code> and the playground follows. Without the <code>f</code> the braces are printed as they are. A misspelt name inside a brace is the usual <strong>NameError</strong>: braces run real Python.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: f'{name}{name}'" data-label="Python shell for name, age, week and coins"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="str">
+    <div class="q-head"><span class="q-num">Q2</span><h2>The Receipt</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">After the colon inside a brace comes the <strong>format spec</strong>: how many decimals, commas for thousands, how wide and which way to align. A receipt needs all of them.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">format specs</span></div>
+      <div class="vals"><div class="val" data-val="q2:item"></div><div class="val" data-val="q2"></div><div class="val" data-val="q2:qty"></div><div class="val" data-val="q2:total"></div><div class="val" data-val="q2:big"></div></div>
+      <div class="fspic" data-fs="q2"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="f'{total:.2f}'">f'{total:.2f}'</button>
+        <button type="button" class="btn" data-run="q2" data-code="f'{total:.0f}'">f'{total:.0f}'</button>
+        <button type="button" class="btn" data-run="q2" data-code="f'{big:,}'">f'{big:,}'</button>
+        <button type="button" class="btn" data-run="q2" data-code="f'[{item:>10}]'">f'[{item:>10}]'</button>
+        <button type="button" class="btn" data-run="q2" data-code="f'[{item:^10}]'">f'[{item:^10}]'</button>
+        <button type="button" class="btn" data-run="q2" data-code="f'{price=}'">f'{price=}'</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">The square brackets in two of the buttons are only there so you can see the padding. <code>&lt;</code> left, <code>&gt;</code> right, <code>^</code> centre, then the width.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: f'{price * qty:.1f}'" data-label="Python shell for the receipt"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="str">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Three Ways, One Sentence</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">The joke from Homework 3, written all three ways. They print the same thing; pick the one you would want to read next month.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">%s · .format() · f</span></div>
+      <div class="vals"><div class="val" data-val="q3"></div><div class="val" data-val="q3:where"></div></div>
+      <div class="fspic" data-fs="q3"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="'%s walked into a %s and ordered a sandwich.' % (who, where)">'%s walked into a %s …' % (who, where)</button>
+        <button type="button" class="btn" data-run="q3" data-code="'{} walked into a {} and ordered a sandwich.'.format(who, where)">'{} walked into a {} …'.format(who, where)</button>
+        <button type="button" class="btn" data-run="q3" data-code="f'{who} walked into a {where} and ordered a sandwich.'">f'{who} walked into a {where} …'</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip">Press all three: same sentence. Now imagine swapping <code>who</code> and <code>where</code> in each one. In the first two you move values in a list; in the f-string you move the names where they belong.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: f'{where} visited by {who}'" data-label="Python shell for who and where"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Save your work</h2>
+    <p>This is an extra, so there is nothing to hand in unless your teacher asks. The report works the same as on the homework pages: your score, every check, your three scripts and what they printed.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>This page is not one of the posted homeworks. It covers f-strings (Python 3.6, 2016), which are the form of string formatting students will meet in almost all current Python code, tutorials and documentation. It assumes Homework 3 (<code>%s</code> and <code>.format()</code>) and reuses its joke so the three ways can be compared side by side.</p>
+    <ul>
+      <li>Everything runs in real Python 3.12 in the browser (Pyodide). Nothing is installed and nothing is sent anywhere.</li>
+      <li>Q1 is the basics; Q2 is format specs (<code>.2f</code>, <code>,</code>, alignment and width, <code>{x=}</code>); the bonus writes one sentence three ways and asks for a preference.</li>
+      <li>Grading checks the printed text and that an f-string with the right braces (and format spec) is in the script. The two written answers are yours to grade.</li>
+      <li>Points: 10 × 5, then 10 + 10 + 15 + 10 + 5, bonus 6 + 4.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>
