@@ -130,7 +130,8 @@ const BRK = { list: '[]', tuple: '()', dict: '{}' };
 const rowKey = (q, name) => name === q.var ? q.id : `${q.id}:${name}`;
 function initVals(q) {
   const r = q.init(), m = q.vars.length > 1 ? r : { [q.var]: r };
-  return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { exists: true, value: v }]));
+  // a variable the picture shows but init() leaves out starts as "not set yet" (undefined = never set)
+  return Object.fromEntries(q.vars.map(k => [k, k in m && m[k] !== undefined ? { exists: true, value: m[k] } : { exists: false, value: null, never: true }]));
 }
 const valOf = (q, name = q.var) => { const c = S[q.id].vals[name]; return c ? c.value : null; };
 function renderPicture(q, h) {
@@ -138,15 +139,16 @@ function renderPicture(q, h) {
   q.vars.forEach(name => { renderRow(q, name, mine(name)); renderVal(q, name); });
   if ($(`[data-map="${q.id}"]`)) renderMap(q, mine(q.var));
   if (q.flow) flowFromShell(q);
+  if (q.fmt && S[q.id].fm) loadFmt(q);  // the template may have changed at the >>> prompt
 }
 /* A plain value (None, a string, a number): one box with its type underneath. */
-const TYPE = v => v === null ? 'NoneType' : typeof v === 'string' ? 'str' : typeof v === 'number' ? 'int' : typeof v === 'boolean' ? 'bool' : v.t === 'other' ? '' : v.t;
+const TYPE = v => v === null ? 'NoneType' : typeof v === 'string' ? 'str' : typeof v === 'number' ? 'int' : typeof v === 'boolean' ? 'bool' : v.t === 'other' ? (/^-?\d+\.\d*(e[+-]?\d+)?$|^-?inf$|^nan$/.test(v.r) ? 'float' : '') : v.t;
 function renderVal(q, name) {
   const el = $(`[data-val="${rowKey(q, name)}"]`); if (!el) return;
   const cur = S[q.id].vals[name] || { exists: false, value: null };
   el.innerHTML = `<span class="var-name">${esc(name)} =</span>` + (cur.exists
     ? `<span class="val-box">${esc(repr(cur.value))}</span><span class="badge">${esc(TYPE(cur.value))}</span>`
-    : '<span class="row-empty">deleted. Press “Reset picture”.</span>');
+    : `<span class="row-empty">${cur.never || (S[q.id].never && S[q.id].never.has(name)) ? 'not set yet' : 'deleted. Press “Reset picture”.'}</span>`);
 }
 function renderRow(q, name, h) {
   const key = rowKey(q, name), row = $(`[data-row="${key}"]`); if (!row) return;
@@ -486,6 +488,104 @@ function paintLoop(q) {
   }
 }
 
+/* ---------- string template pictures (hw3): %s, {} with .format(), f-strings ----------
+   q.fmt = {templates: [variable names holding a %s string], values: {name: [python literals]},
+            names: {name: [variable names for the f-string version]}}.
+   The template's %s slots are drawn as numbered chips; the student types a literal for each
+   slot, Python does the real `template % (…)`, `.format(…)` or f-string, and the result shows
+   which part came from which slot. Wrong counts and missing quotes show Python's own errors. */
+function buildFmt(q) {
+  const f = q.fmt, host = $(`[data-fmt="${q.id}"]`); if (!f || !host) return;
+  const st = S[q.id];
+  st.fm = { tpl: 0, mode: store.get(q.id + ':fm:mode') || '%', vals: {}, text: null };
+  f.templates.forEach(n => { st.fm.vals[n] = (store.get(q.id + ':fm:' + n) || '').split('\u0001').filter(Boolean); if (!st.fm.vals[n].length) st.fm.vals[n] = [...(f.values[n] || [])]; });
+  const MODES = [['%', '%s and %'], ['{}', '{} and .format()'], ['f', 'f-string']];
+  host.innerHTML = `
+    ${f.templates.length > 1 ? `<div class="seg fl-progs" role="group" aria-label="Pick a template">${f.templates.map((n, i) => `<button type="button" data-tpl="${i}" aria-pressed="${i === 0}">${esc(n)}</button>`).join('')}</div>` : ''}
+    <div class="fm-tpl" data-fm-tpl></div>
+    <div class="fm-slots" data-fm-slots></div>
+    <div class="fm-run">
+      <div class="seg fm-mode" role="group" aria-label="Which way to fill the slots">${MODES.map(([m, l]) => `<button type="button" data-mode="${m}" aria-pressed="${m === st.fm.mode}">${l}</button>`).join('')}</div>
+      <div class="fm-code" data-fm-code></div>
+    </div>
+    <div class="fm-out" data-fm-out></div>
+    <p class="fm-note" data-fm-note></p>`;
+  $$('[data-tpl]', host).forEach(b => b.addEventListener('click', () => { st.fm.tpl = +b.dataset.tpl; $$('[data-tpl]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); loadFmt(q); }));
+  $$('[data-mode]', host).forEach(b => b.addEventListener('click', () => { st.fm.mode = b.dataset.mode; store.set(q.id + ':fm:mode', st.fm.mode); $$('[data-mode]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); paintFmtSlots(q); runFmt(q); }));
+  loadFmt(q);
+}
+const fmName = q => q.fmt.templates[S[q.id].fm.tpl];
+const FM_NOTE = {
+  '%': 'The old way, from the lecture: %s marks a slot, and % fills the slots in order. Two or more values go in parentheses.',
+  '{}': 'The .format() way: {} marks a slot, and .format(…) fills them in order. No parentheses needed around the values.',
+  'f': 'The modern way (Python 3.6 and newer): put f in front of the string and write the variable itself inside {…}. Nothing to count, nothing to match up.',
+};
+async function loadFmt(q) {
+  // the template's current text from Python (the student may have changed it at the >>> prompt)
+  const st = S[q.id], name = fmName(q);
+  try { const r = await Py.call('peek', { qid: q.id, expr: name, var: q.var, setup: q.setup }); st.fm.text = r.error || r.str === undefined ? null : r.str; st.fm.err = r.error || (r.str === undefined ? 'is not a string' : null); }
+  catch (e) { st.fm.text = null; }
+  paintFmtSlots(q); runFmt(q);
+}
+/* the names the f-string version uses for the slots: the lesson's, else value1, value2, … */
+const fmNames = (q, n) => { const given = (q.fmt.names || {})[fmName(q)] || []; return Array.from({ length: n }, (_, k) => given[k] || `value${k + 1}`); };
+function paintFmtSlots(q) {
+  const st = S[q.id], host = $(`[data-fmt="${q.id}"]`), name = fmName(q), text = st.fm.text, mode = st.fm.mode;
+  const parts = text === null ? [] : text.split('%s'), n = Math.max(0, parts.length - 1), names = fmNames(q, n);
+  const slotLabel = k => mode === '{}' ? '{}' : mode === 'f' ? `{${names[k]}}` : '%s';
+  $('[data-fm-tpl]', host).innerHTML = text === null ? `<span class="var-name">${esc(name)}</span> <span class="s-err">${esc(st.fm.err || '')}</span>`
+    : `<span class="var-name">${mode === 'f' ? 'f' : esc(name) + ' ='}</span> <span class="fm-str">"${parts.map((p, i) => esc(p) + (i < n ? `<b class="fm-slot" data-k="${i}">${esc(slotLabel(i))}<i>${i + 1}</i></b>` : '')).join('')}"</span>`;
+  const slots = $('[data-fm-slots]', host); slots.innerHTML = '';
+  const vals = st.fm.vals[name] || (st.fm.vals[name] = []);
+  for (let k = 0; k < n; k++) {
+    const row = document.createElement('div'); row.className = 'fm-slotrow';
+    row.innerHTML = `<span class="fm-no">${mode === 'f' ? esc(names[k]) : 'slot ' + (k + 1)}</span><span class="pr">=</span><div class="pc-in" data-slot="${k}"></div>`;
+    slots.appendChild(row);
+    let tt = null;
+    lineEditor(q, $('[data-slot]', row), {
+      initial: vals[k] || '', placeholder: k === 0 ? "a Python value, like 'Rocket' or 7" : 'another value', label: `Value for slot ${k + 1}`,
+      onEnter: () => runFmt(q),
+      onChange: v => { vals[k] = v; store.set(q.id + ':fm:' + name, vals.join('\u0001')); clearTimeout(tt); tt = setTimeout(() => runFmt(q), 400); },
+    });
+  }
+  if (!n && text !== null) slots.innerHTML = '<span class="tip">This string has no %s slot, so there is nothing to fill in.</span>';
+  $('[data-fm-note]', host).textContent = FM_NOTE[mode];
+}
+async function runFmt(q) {
+  const st = S[q.id], host = $(`[data-fmt="${q.id}"]`), name = fmName(q), text = st.fm.text, mode = st.fm.mode;
+  const out = $('[data-fm-out]', host), codeEl = $('[data-fm-code]', host);
+  if (text === null) { out.innerHTML = ''; codeEl.innerHTML = ''; return; }
+  const args = (st.fm.vals[name] || []).map(v => v.trim()).filter(Boolean), n = (text.match(/%s/g) || []).length, names = fmNames(q, Math.max(n, args.length));
+  const parts = text.split('%s');
+  // Python literals for the same text with {} slots, and as an f-string body (braces in the text escaped)
+  const pyStr = t => JSON.stringify(t);
+  const curly = pyStr(parts.join('{}'));
+  const fbody = pyStr(parts.map(p => p.replace(/[{}]/g, c => c + c)).map((p, i) => p + (i < n ? `{${names[i]}}` : '')).join(''));
+  let expr, lines;
+  if (mode === '%') { expr = `${name} % ${args.length === 1 ? args[0] : `(${args.join(', ')})`}`; lines = [`print(${expr})`]; }
+  else if (mode === '{}') { expr = `${curly}.format(${args.join(', ')})`; lines = [`print(${expr})`]; }
+  else { lines = args.map((a, k) => `${names[k]} = ${a}`); lines.push(`print(f${fbody})`); expr = `(lambda ${names.slice(0, args.length).join(', ')}: f${fbody})(${args.join(', ')})`; }
+  codeEl.innerHTML = lines.map((l, i) => `<span class="pr">${i < lines.length - 1 && mode === 'f' ? '>>>' : '>>>'}</span> ${hl(l)}`).join('\n');
+  if (!args.length) { out.innerHTML = '<div class="s-note">type a value for each slot</div>'; return; }
+  let r;
+  try { r = await Py.call('peek', { qid: q.id, expr: `__import__('json').dumps([${expr}, [str(__x) for __x in (${args.join(', ')},)]])`, var: q.var, setup: q.setup }); }
+  catch (e) { r = { error: failText(e) }; }
+  if (r.error) {
+    let tip = '';
+    if (/not enough arguments/.test(r.error)) tip = `<div class="s-note">There are ${n} slots but only ${args.length} value${args.length === 1 ? '' : 's'}.</div>`;
+    else if (/not all arguments converted/.test(r.error)) tip = '<div class="s-note">More values than slots: every value needs a %s.</div>';
+    else if (/NameError/.test(r.error)) tip = '<div class="s-note">Words need quotes to be a string. Without them Python looks for a variable with that name.</div>';
+    else if (/IndexError|Replacement index/.test(r.error)) tip = `<div class="s-note">There are ${n} {} slots but only ${args.length} value${args.length === 1 ? '' : 's'}.</div>`;
+    out.innerHTML = `<div class="s-err">${esc(r.error)}</div>${tip}`; return;
+  }
+  let result, strs;
+  try { [result, strs] = JSON.parse(r.str); } catch (e) { out.innerHTML = `<div class="s-out">${esc(r.repr)}</div>`; return; }
+  const filled = n === strs.length
+    ? parts.map((p, i) => esc(p) + (i < strs.length ? `<b class="fm-fill" data-k="${i}">${esc(strs[i])}<i>${i + 1}</i></b>` : '')).join('')
+    : esc(result);
+  out.innerHTML = `<div class="fm-result">${filled}</div>`;
+}
+
 /* ---------- the >>> prompt under each picture ---------- */
 async function shellRun(q, code, opts = {}) {
   const st = S[q.id]; code = code.trim(); if (!code) return null;
@@ -755,12 +855,15 @@ function gradeCore(q, res, raw) {
   const fin = name => (res.finals || {})[name];
   const ctx = {
     code,
+    outputs,  // every line the script printed, in order
     printed: s => outputs.includes(s),
     printedAny: a => a.some(s => outputs.includes(s)),
     final: f => { const o = res.final; return !!(o && o.items && f(o.items)); },
     // a variable as the script left it: dict(name) -> {key: value}, list(name) -> [items]; null if it isn't one
     dict: name => { const o = fin(name); return o && o.t === 'dict' ? Object.fromEntries(o.items.map(([k, x]) => [display(k), x])) : null; },
     list: name => { const o = fin(name); return o && o.t === 'list' ? o.items : null; },
+    // a plain variable as the script left it: a number, a string, or for anything else its repr text; undefined if unset
+    value: name => { const o = fin(name); return o && o.t === 'other' ? o.r : o; },
     explained: () => WHY_RE.test(raw.split('\n').map(commentText).filter(t => t && !starterComments.has(t)).join(' ').toLowerCase()),
     ran: !res.syntax,
     // each top-level if statement, tried with every q.probe value: {line, outs: [printed lines | null], ops, elifs, else}
@@ -814,11 +917,10 @@ function cellHTML(q, t, k) {
     // A guess (c.ok) is written before running the line; an explanation comes after.
     return `<div class="pc" data-pc="${k}">${c.ok ? write + tryIt : tryIt + write}</div>`;
   }
-  if (c.stmt) return `<div class="pc" data-pc="${k}">
-    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="type a line of Python" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
-    <div class="pc-res" data-res></div></div>`;
-  return `<div class="pc" data-pc="${k}">
-    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="type a line of Python" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
+  // one-line boxes (an expression or a statement); c.label is a comment-style instruction above the line
+  const label = c.label ? `<span class="pc-label h-c">${esc(c.label)}</span>` : '';
+  return `<div class="pc" data-pc="${k}">${label}
+    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="${esc(c.ph || 'type a line of Python')}" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
     <div class="pc-res" data-res></div></div>`;
 }
 const cellText = (q, k) => S[q.id].inputs[k] ?? (q.tasks[k].cell && q.tasks[k].cell.start) ?? '';
@@ -831,7 +933,8 @@ function cellSpecs(q) {
       const vals = c.values || q.probe.values;
       return { kind: 'prog', input: cellText(q, k), want: vals.map(c.prog), var: q.probe.var, values: vals.map(pyLit) };
     }
-    return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !!input && !varRe.test(input) };
+    // skip: the answer was typed in instead of reached through the variable (cell.free: the task has no variable, like 100//3)
+    return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !c.free && !!input && !varRe.test(input) };
   });
 }
 function composeCell(q, t, k, r) {
@@ -883,7 +986,8 @@ async function checkCells(q) {
   const st = S[q.id];
   store.set(q.id + ':cells', JSON.stringify(st.inputs));
   let res;
-  try { res = await Py.call('cells', { setup: q.setup, var: q.var, vars: q.vars, specs: cellSpecs(q) }); }
+  // q.cellSetup: what the practice boxes start from when it differs from the picture's setup (hw1 starts its picture empty)
+  try { res = await Py.call('cells', { setup: q.cellSetup ?? q.setup, var: q.var, vars: q.vars, specs: cellSpecs(q) }); }
   catch (e) { res = q.tasks.map(() => ({ state: 'fail', error: failText(e) })); }
   st.cells = q.tasks.map((t, k) => composeCell(q, t, k, res[k]));
   q.tasks.forEach((t, k) => {
@@ -972,8 +1076,23 @@ function paintScores() {
     el.textContent = `${t.got} / ${t.max} pts · ${t.checks}/${t.cells} checks`; el.classList.toggle('full', t.got === t.max);
     return `<a class="chip" href="#${q.id}">${q.id.toUpperCase()} ${q.title}${q.bonus ? ' (bonus)' : ''} · ${t.got}/${t.max}</a>`;
   });
-  $('#scoreboard').innerHTML = `<span class="chip total">Score ${got} / ${max}${bonus ? ` + ${bonus} bonus` : ''}</span>` + chips.join('') + '<a class="chip" href="#handin">Hand in →</a>';
+  $('#scoreboard').innerHTML = `<span class="chip total">Score ${got} / ${max}${bonus ? ` + ${bonus} bonus` : ''}</span>` + chips.join('') + '<a class="chip" href="#handin">Hand in →</a>'
+    + '<button type="button" class="chip chip-btn" id="reset-all" title="Forget everything saved for this homework in this browser and start fresh">Start over</button>';
 }
+/* Start the whole homework over: forget this lesson's saved code, check inputs and scores (not the
+   student's name), then reload. Two clicks, like the editor's Start over. */
+let resetAllTimer = null;
+document.addEventListener('click', e => {
+  const b = e.target.closest('#reset-all'); if (!b) return;
+  if (!b.dataset.armed) {
+    b.dataset.armed = '1'; b.textContent = 'Sure? Click again to erase this homework';
+    clearTimeout(resetAllTimer); resetAllTimer = setTimeout(() => { delete b.dataset.armed; b.textContent = 'Start over'; }, 4000);
+    return;
+  }
+  const prefix = `pylab:v1:${LESSON_ID}:`;
+  try { Object.keys(localStorage).filter(k => k.startsWith(prefix) && k !== prefix + 'name').forEach(k => localStorage.removeItem(k)); } catch (err) { /* private mode */ }
+  location.reload();
+});
 
 /* ---------- copy ---------- */
 function copyText(text, btn, fallbackEl) {
@@ -1051,12 +1170,12 @@ function updSlice() {
   $('#q1-start-o').textContent = a; $('#q1-stop-o').textContent = b;
   const idxs = []; for (let k = a; k < Math.min(b, n); k++) idxs.push(k);
   applyHL(QS[0], { idxs, slice: true, fence: Math.max(Math.min(b, n), a) });
-  const code = `spells[${a}:${b}]`, out = $('#q1-slice-read');
+  const code = `${QS[0].var}[${a}:${b}]`, out = $('#q1-slice-read');
   out.innerHTML = `<span>${hl(code)}</span><span class="arrow">→</span><span class="slice-val">…</span>`;
   clearTimeout(sliceTimer);
   sliceTimer = setTimeout(async () => {
     try {
-      const r = await Py.call('peek', { qid: 'q1', expr: code, var: 'spells', setup: QS[0].setup });
+      const r = await Py.call('peek', { qid: 'q1', expr: code, var: QS[0].var, setup: QS[0].setup });
       const el = $('.slice-val', out); if (el) el.textContent = r.error || r.repr;
     } catch (e) { /* worker restarting */ }
   }, 120);
@@ -1072,13 +1191,14 @@ function setStatus(state, detail) {
 Py.on((state, d) => {
   if (state === 'ready') {
     S.version = d.version; setStatus('ready', d.version);
-    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } });
+    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); });
   } else setStatus(state, d);
 });
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
-  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q);
+  S[q.id].never = new Set(Object.entries(S[q.id].vals).filter(([, v]) => v.never).map(([k]) => k));
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
     row.addEventListener('click', e => {

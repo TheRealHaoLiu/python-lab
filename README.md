@@ -9,6 +9,13 @@ Interactive Python homework for a middle-school class, live at
 | 7 | Flow Control (roller coaster height check, joke machine, secret word) | [`hw7/`](https://therealhaoliu.github.io/python-lab/hw7/) | none |
 | 6 | Dictionaries (class pets, book shelf vs. sticker album, team rosters) | [`hw6/`](https://therealhaoliu.github.io/python-lab/hw6/) | none |
 | 5 | Tuples & Lists (spell book, treasure map, pizza order) | [`hw5/`](https://therealhaoliu.github.io/python-lab/hw5/) | [Colab](https://colab.research.google.com/drive/1F3OSTM8XyNexynG4aKUC3kTzux_18rsO?usp=sharing) · source `notebooks/hw5-tuples-and-lists.ipynb` |
+| 4 | Lists (potion ingredients, mixed backpack, your favourites) | [`hw4/`](https://therealhaoliu.github.io/python-lab/hw4/) | none |
+| 3 | Strings with slots (Mad Libs blanks, joke generator; %s, .format() and f-strings) | [`hw3/`](https://therealhaoliu.github.io/python-lab/hw3/) | none |
+| 2 | Variables (your name, area of a circle, input()) | [`hw2/`](https://therealhaoliu.github.io/python-lab/hw2/) | none |
+| 1 | The Python shell (thirteen lines, types, operators) | [`hw1/`](https://therealhaoliu.github.io/python-lab/hw1/) | none |
+
+Homeworks 1–4 were built after the fact (the class had passed them) so the whole course is
+here for the next student. Their points per task are the pages' own; the postings gave none.
 
 | | What it is | Python |
 |---|---|---|
@@ -28,6 +35,8 @@ site/
   hw6/              Homework 6 (dictionaries), same layout
   hw7/              Homework 7 (if/elif/else, and/or, None): slider pictures instead of boxes
   hw8/              Homework 8 (for, range(), while, nested loops): step through a loop one turn at a time
+  hw1/ … hw4/       Homeworks 1–4: shell transcript and type badges; variables as labels;
+                    %s / .format() / f-string slot machine (js/app.js buildFmt); lists
   css/lab.css       shared styles (light and dark)
   js/config.js      where Pyodide comes from, run timeout
   js/app.js         shared page behaviour: pictures, editors, checks, report

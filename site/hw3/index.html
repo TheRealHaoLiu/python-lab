@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homework 3 · Strings with Slots</title>
+<meta name="description" content="Python practice on strings with slots: %s and %, {} and .format(), and f-strings, with a fill-in-the-slot machine and real Python in the browser.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 3</div>
+    <h1><span class="s">Strings with Slots</span> Lab</h1>
+    <p class="lede">A string can have <strong>slots</strong>: marks where a value drops in later. One template, many sentences. Python has three ways to write a slot. The homework uses the first; the other two are what you will meet everywhere else.</p>
+    <div class="idea">
+      <div class="kind-card is-str">
+        <h3><span class="glyph">%s</span> The lecture's way</h3>
+        <div class="demo pre">joke = "%s: a device for %s"
+print(joke % ("Knee", "finding furniture"))</div>
+        <ul>
+          <li><code>%s</code> marks a slot. <code>%</code> fills the slots, in order.</li>
+          <li>Two or more values go in parentheses: <code>(a, b)</code>.</li>
+          <li>Too few or too many values is a <strong>TypeError</strong>.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-str">
+        <h3><span class="glyph">{}</span> .format()</h3>
+        <div class="demo pre">joke = "{}: a device for {}"
+print(joke.format("Knee", "finding furniture"))</div>
+        <ul>
+          <li><code>{}</code> marks a slot. <code>.format(…)</code> fills them, in order.</li>
+          <li>No parentheses needed around the values: they are the arguments.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-str">
+        <h3><span class="glyph">f"…"</span> f-string (modern)</h3>
+        <div class="demo pre">part = "Knee"
+print(f"{part}: a device for finding furniture")</div>
+        <ul>
+          <li>Put <code>f</code> before the quotes, and the <em>variable itself</em> inside <code>{…}</code>.</li>
+          <li>Nothing to count or line up. Python 3.6 and newer; this is how most code is written today.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Fill the slots in the picture and switch between the three ways.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="str">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Fill in the Blanks, Mad Libs Style</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">Four templates with blanks. Complete each one so that its <code>print</code> line produces the expected output, using <code>%s</code> slots and <code>%</code> to fill them.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">str · the slot machine</span></div>
+      <div class="vals"><div class="val" data-val="q1:thing1"></div><div class="val" data-val="q1:thing2"></div><div class="val" data-val="q1:color"></div></div>
+      <div class="fmt" data-fmt="q1"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="vehicle_text % (thing1, thing2)">vehicle_text % (thing1, thing2)</button>
+        <button type="button" class="btn" data-run="q1" data-code="vehicle_text % (thing2, thing1)">vehicle_text % (thing2, thing1)</button>
+        <button type="button" class="btn" data-run="q1" data-code="score_text % (7, 42)">score_text % (7, 42)</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="vehicle_text % thing1">Try: vehicle_text % thing1</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="sentence % color">Try: sentence % color</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">Order matters: swap <code>thing1</code> and <code>thing2</code> and Mars becomes the vehicle. One value for two slots is a <strong>TypeError: not enough arguments</strong>. And <code>sentence % color</code> fails until <code>sentence</code> has a slot: a value with nowhere to go is <strong>not all arguments converted</strong>.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: animal_joke % ('owl', 'mouse')" data-label="Python shell for the templates"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="str">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Build Your Own Joke Generator</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">One template, three jokes. Store a template with two <code>%s</code> slots, three pairs of values, and print the joke once per pair.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">str · two slots</span></div>
+      <div class="fmt" data-fmt="q2"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="joke % ('A penguin', 'library')">joke % ('A penguin', 'library')</button>
+        <button type="button" class="btn" data-run="q2" data-code="joke % ('A robot', 'coffee shop')">joke % ('A robot', 'coffee shop')</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="joke % ('A pirate', 'spaceship', 'ship')">Try: three values</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">Every press is the same template with a different pair. Your script does this three times with its own pairs. Type a new template at the <code>&gt;&gt;&gt;</code> prompt (<code>joke = "…"</code>) and the picture follows it.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: joke % ('My cat', 'bank')" data-label="Python shell for joke"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="str">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Three Ways to Fill a Slot</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">The same joke generator with <code>{}</code> and <code>.format()</code>, then once more as an f-string. Same sentences, three spellings.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">str · %s vs {} vs f</span></div>
+      <div class="fmt" data-fmt="q3"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="joke % ('A pirate', 'spaceship')">joke % ('A pirate', 'spaceship')</button>
+        <button type="button" class="btn" data-run="q3" data-code="'{} walked into a {} and ordered a sandwich.'.format('A pirate', 'spaceship')">'{} walked into a {} …'.format('A pirate', 'spaceship')</button>
+        <button type="button" class="btn" data-run="q3" data-code="who = 'A pirate'">who = 'A pirate'</button>
+        <button type="button" class="btn" data-run="q3" data-code="where = 'spaceship'">where = 'spaceship'</button>
+        <button type="button" class="btn" data-run="q3" data-code="f'{who} walked into a {where} and ordered a sandwich.'">f'{who} walked into a {where} …'</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip">Press the three buttons that build the f-string in order: first the two variables, then the f-string that names them. Flip the picture's switch to compare all three ways on the same template.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: f'{who} says hi'" data-label="Python shell for joke"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first, so you get the latest results.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached.</p>
+    <ul>
+      <li>Q1 and Q2 are graded on <code>%s</code> and <code>%</code>, as posted. The bonus is the posted <code>{}</code> / <code>.format()</code> rewrite plus one extra task, not in the posting, that writes the same joke as an f-string. The picture's switch shows all three spellings side by side, because f-strings are what students will see in almost all current Python.</li>
+      <li>The posting gives no points per task, so this page uses 10 per Q1 part, 10 + 20 + 20 for Q2 (template, six variables, three prints) and 10 + 5 + 5 for the bonus. Change them in <code>lesson.js</code> if your rubric differs.</li>
+      <li>Q2 is graded against the student's own template and pairs: the template must have exactly two slots, the script needs six string variables besides it, and three different printed lines must fit the template.</li>
+      <li>Each task has two checks. The <strong>practice check</strong> is the box under the task; the <strong>homework.py</strong> check is the graded one. Bonus task 2 (what changes with <code>{}</code>) is for you to grade; the page only checks that something relevant was written.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>

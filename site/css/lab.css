@@ -1,7 +1,7 @@
 /* Layout: a sheet of graph paper with three experiments; each = a picture bench you poke, then a script bench you write. */
 :root{
   --paper:#f4f7fb; --grid:#e0e7f1; --card:#ffffff; --ink:#1b2440; --muted:#5a6684; --line:#cdd6e4;
-  --tuple:#4a43c8; --tuple-soft:#ebeafc; --list:#c95a12; --list-soft:#fdeee2; --dict:#0e7468; --dict-soft:#dcf1ed; --flow:#a8326e; --flow-soft:#fbe8f1; --loop:#2563c9; --loop-soft:#e4ecfb;
+  --tuple:#4a43c8; --tuple-soft:#ebeafc; --list:#c95a12; --list-soft:#fdeee2; --dict:#0e7468; --dict-soft:#dcf1ed; --flow:#a8326e; --flow-soft:#fbe8f1; --loop:#2563c9; --loop-soft:#e4ecfb; --str:#8a6a00; --str-soft:#fbf1d2; --var:#0f766e; --var-soft:#d9f2ee;
   --mark:#ffe46b; --mark-ink:#1b2440; --ok:#1d8448; --ok-soft:#e2f3e9; --err:#c42d3a; --err-soft:#fbe6e8;
   --code-bg:#151b2e; --code-ink:#e6ebf7; --code-dim:#8892af; --code-line:#262f48; --code-str:#ffd479; --code-err:#ff8f99; --code-ok:#8fe3ad; --code-note:#9fb7ff;
   --code-kw:#ff8fc8; --code-fn:#7fd4ff; --code-num:#c9a8ff; --code-field:#222a42;
@@ -13,12 +13,12 @@
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#0f1420; --grid:#182133; --card:#161d2b; --ink:#e7ecf6; --muted:#9aa5bf; --line:#2a3447;
-  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b; --loop:#7fb0ff; --loop-soft:#162a4d;
+  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b; --loop:#7fb0ff; --loop-soft:#162a4d; --str:#f2c94c; --str-soft:#3a3012; --var:#5eead4; --var-soft:#113833;
   --mark:#ffd84a; --mark-ink:#1b2440; --ok:#62d391; --ok-soft:#163323; --err:#ff7b86; --err-soft:#3b1a20;
   --code-bg:#0a0e17; --code-line:#1d2538; color-scheme:dark } }
 :root[data-theme="dark"]{
   --paper:#0f1420; --grid:#182133; --card:#161d2b; --ink:#e7ecf6; --muted:#9aa5bf; --line:#2a3447;
-  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b; --loop:#7fb0ff; --loop-soft:#162a4d;
+  --tuple:#a19bff; --tuple-soft:#252349; --list:#ff9a55; --list-soft:#3a2415; --dict:#4fd3bd; --dict-soft:#123430; --flow:#ff8cc4; --flow-soft:#3a1a2b; --loop:#7fb0ff; --loop-soft:#162a4d; --str:#f2c94c; --str-soft:#3a3012; --var:#5eead4; --var-soft:#113833;
   --mark:#ffd84a; --mark-ink:#1b2440; --ok:#62d391; --ok-soft:#163323; --err:#ff7b86; --err-soft:#3b1a20;
   --code-bg:#0a0e17; --code-line:#1d2538; color-scheme:dark }
 
@@ -39,7 +39,7 @@ button{font:inherit;color:inherit}
 .hero{padding-top:40px;display:grid;gap:22px}
 .eyebrow{font:600 12px var(--f-code);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .hero h1{font-size:clamp(36px,7vw,64px);letter-spacing:-.01em}
-.hero h1 .t{color:var(--tuple)} .hero h1 .l{color:var(--list)} .hero h1 .d{color:var(--dict)} .hero h1 .f{color:var(--flow)} .hero h1 .lp{color:var(--loop)}
+.hero h1 .t{color:var(--tuple)} .hero h1 .l{color:var(--list)} .hero h1 .d{color:var(--dict)} .hero h1 .f{color:var(--flow)} .hero h1 .lp{color:var(--loop)} .hero h1 .s{color:var(--str)} .hero h1 .v{color:var(--var)}
 .lede{max-width:62ch;font-size:18px;color:var(--muted);margin:0}
 .idea{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
 .kind-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:10px;min-width:0}
@@ -51,6 +51,8 @@ button{font:inherit;color:inherit}
 .kind-card.is-dict{--kind:var(--dict);--kind-soft:var(--dict-soft)}
 .kind-card.is-flow{--kind:var(--flow);--kind-soft:var(--flow-soft)}
 .kind-card.is-loop{--kind:var(--loop);--kind-soft:var(--loop-soft)}
+.kind-card.is-str{--kind:var(--str);--kind-soft:var(--str-soft)}
+.kind-card.is-var{--kind:var(--var);--kind-soft:var(--var-soft)}
 .kind-card .demo.pre{white-space:pre}
 .how{display:flex;flex-wrap:wrap;gap:10px 28px;margin:0;padding:0;list-style:none;color:var(--muted)}
 .how li{display:flex;gap:8px;align-items:baseline}
@@ -65,6 +67,8 @@ button{font:inherit;color:inherit}
 .q[data-kind="dict"]{--kind:var(--dict);--kind-soft:var(--dict-soft)}
 .q[data-kind="flow"]{--kind:var(--flow);--kind-soft:var(--flow-soft)}
 .q[data-kind="loop"]{--kind:var(--loop);--kind-soft:var(--loop-soft)}
+.q[data-kind="str"]{--kind:var(--str);--kind-soft:var(--str-soft)}
+.q[data-kind="var"]{--kind:var(--var);--kind-soft:var(--var-soft)}
 .q-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border-top:3px solid var(--kind);padding-top:14px}
 .q-num{font:600 14px var(--f-code);color:var(--card);background:var(--kind);border-radius:6px;padding:3px 8px}
 .q-head h2{font-size:clamp(26px,4vw,34px)}
@@ -396,3 +400,30 @@ pre.report{background:var(--code-bg);color:var(--code-ink);border-radius:10px;pa
 /* a list drawn inside a loop bench keeps the list colour; the bench stays loop-coloured */
 .row-wrap.own-tint{position:relative}
 .row-wrap.own-tint .var-name .badge{position:absolute;top:0;right:0}
+
+/* ---------- string template pictures: %s, {} and f-strings (hw3) ---------- */
+.fmt{display:grid;gap:14px;min-width:0}
+.fm-tpl{font:15px/1.6 var(--f-code);overflow-wrap:anywhere}
+.fm-str{background:var(--kind-soft);border-radius:8px;padding:6px 10px;display:inline;box-decoration-break:clone;-webkit-box-decoration-break:clone;color:var(--ink)}
+.fm-slot,.fm-fill{position:relative;display:inline-block;font-weight:600;border-radius:6px;padding:0 6px;margin:0 1px;background:var(--mark);color:var(--mark-ink);border:1.5px solid var(--ink)}
+.fm-slot i,.fm-fill i{position:absolute;top:-10px;right:-8px;font:600 10px var(--f-code);font-style:normal;background:var(--ink);color:var(--paper);border-radius:50%;width:16px;height:16px;display:grid;place-items:center}
+.fm-slots{display:grid;gap:8px;max-width:560px}
+.fm-slotrow{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:10px;align-items:center;font:14px var(--f-code);background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:6px 12px}
+.fm-no{color:var(--code-dim);font-weight:600}
+.fm-slotrow .pr{color:var(--code-ok)}
+.fm-run{display:grid;gap:10px}
+.fm-mode{flex-wrap:wrap;max-width:100%}
+.fm-code{font:14px/1.6 var(--f-code);background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:8px 12px;overflow-x:auto;white-space:pre;min-width:0}
+.fm-code .pr{color:var(--code-ok);margin-right:6px}
+.fm-out{font:15px/1.6 var(--f-code);min-height:1.6em}
+.fm-result{background:var(--code-bg);color:var(--code-str);border-radius:10px;padding:10px 14px;overflow-wrap:anywhere}
+.fm-result .fm-fill{color:var(--mark-ink)}
+.fm-note{font-size:14px;color:var(--muted);margin:0}
+
+/* the 13 shell lines of hw1, as a numbered transcript of buttons */
+.transcript{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;counter-reset:tl}
+.transcript li{display:flex;align-items:center;gap:6px;counter-increment:tl}
+.transcript li::before{content:counter(tl);font:600 11px var(--f-code);color:var(--muted);min-width:2ch;text-align:right}
+.transcript .btn{font-family:var(--f-code)}
+.chip-btn{cursor:pointer;border-style:dashed;color:var(--muted);margin-left:auto}
+.chip-btn[data-armed]{border-color:var(--err);color:var(--err);border-style:solid}

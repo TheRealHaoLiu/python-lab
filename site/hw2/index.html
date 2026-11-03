@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homework 2 · Variables</title>
+<meta name="description" content="Python practice on variables, numbers, strings and printing: value boxes you can relabel, the area of a circle, and input(), with real Python in the browser.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 2</div>
+    <h1><span class="v">Variables</span> Lab</h1>
+    <p class="lede">A variable is a <strong>label</strong> stuck on a value. <code>fred = 200</code> sticks the label <code>fred</code> on the number 200; after that, <code>fred</code> means 200 wherever you write it. Values come in types: whole numbers, decimals, and text.</p>
+    <div class="idea">
+      <div class="kind-card is-var">
+        <h3><span class="glyph">=</span> Labels</h3>
+        <div class="demo pre">fred = 200
+john = fred
+print(john)</div>
+        <ul>
+          <li><code>=</code> means “label this”, not “equals”. The name goes on the left, the value on the right.</li>
+          <li><code>john = fred</code> copies the value: now both labels say 200.</li>
+          <li><code>print(fred)</code> shows the value. <code>print("fred")</code> shows the word.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-var">
+        <h3><span class="glyph">3.1</span> Types</h3>
+        <div class="demo">20   3.1416   "Ada"   "20"</div>
+        <ul>
+          <li><code>20</code> is an <strong>int</strong>, <code>3.1416</code> a <strong>float</strong>, <code>"Ada"</code> a <strong>str</strong>.</li>
+          <li><code>"20"</code> with quotes is text. <code>int("20")</code> turns it into the number.</li>
+          <li><code>**</code> is a power: <code>radius ** 2</code> is radius squared. <code>radius * 2</code> is just double.</li>
+          <li><code>input()</code> always gives back text, so wrap it: <code>int(input(…))</code>.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Press the buttons and watch the labels and their types.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="var">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Variables and Printing</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">Two variables, one for your first name and one for your last name, then print them both. First, see how labels work with the lecture's <code>fred</code> and <code>john</code>.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">labels and their types</span></div>
+      <div class="vals"><div class="val" data-val="q1:fred"></div><div class="val" data-val="q1:john"></div><div class="val" data-val="q1"></div><div class="val" data-val="q1:last_name"></div></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="fred = 200">fred = 200</button>
+        <button type="button" class="btn" data-run="q1" data-code="john = fred">john = fred</button>
+        <button type="button" class="btn" data-run="q1" data-code="fred = 'Why do gorillas have big nostrils? Big fingers!!'">fred = 'Why do gorillas…'</button>
+        <button type="button" class="btn" data-run="q1" data-code="print(john)">print(john)</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="print(frd)">Try: print(frd)</button>
+        <button type="button" class="btn" data-run="q1" data-code="first_name = 'Ada'">first_name = 'Ada'</button>
+        <button type="button" class="btn" data-run="q1" data-code="print('first_name')">print('first_name')</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">Press them in order. After <code>john = fred</code>, giving <code>fred</code> a new value does not change <code>john</code>: the label was copied, not tied. A misspelt label is a <strong>NameError</strong>. And quotes around a name print the <em>name</em>, not the value.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: last_name = 'Lovelace'" data-label="Python shell for the name variables"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="var">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Area of a Circle</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">Store a radius, work out the area with <code>3.1416 * radius ** 2</code>, and print it.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">numbers and powers</span></div>
+      <div class="vals"><div class="val" data-val="q2"></div><div class="val" data-val="q2:area"></div></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="radius = 20">radius = 20</button>
+        <button type="button" class="btn" data-run="q2" data-code="radius * 2">radius * 2</button>
+        <button type="button" class="btn" data-run="q2" data-code="radius ** 2">radius ** 2</button>
+        <button type="button" class="btn" data-run="q2" data-code="3.1416 * radius ** 2">3.1416 * radius ** 2</button>
+        <button type="button" class="btn" data-run="q2" data-code="area = 3.1416 * radius ** 2">area = 3.1416 * radius ** 2</button>
+        <button type="button" class="btn" data-run="q2" data-code="type(area)">type(area)</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="radius = '20'">Try: radius = '20'</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip"><code>radius * 2</code> is 40 but <code>radius ** 2</code> is 400: one star multiplies, two stars raise to a power. After <code>radius = '20'</code> (text), press <code>radius ** 2</code> again and read the <strong>TypeError</strong>.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: 3.1416 * 10 ** 2" data-label="Python shell for radius and area"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="var">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Ask for the Radius</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">Instead of writing the radius into the script, ask the user for it with <code>input()</code>. Whatever they type comes back as text, so turn it into a number first.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">text in, number out</span></div>
+      <div class="vals"><div class="val" data-val="q3"></div><div class="val" data-val="q3:area"></div></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="'20' * 2">'20' * 2</button>
+        <button type="button" class="btn" data-run="q3" data-code="int('20') * 2">int('20') * 2</button>
+        <button type="button" class="btn warn" data-run="q3" data-code="'20' ** 2">Try: '20' ** 2</button>
+        <button type="button" class="btn" data-run="q3" data-code="radius = int('20')">radius = int('20')</button>
+        <button type="button" class="btn" data-run="q3" data-code="type(radius)">type(radius)</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip"><code>'20' * 2</code> is <code>'2020'</code>: text times two is the text twice. <code>int('20') * 2</code> is 40. <code>input()</code> hands you text like <code>'20'</code>, which is why the homework wraps it in <code>int()</code>. The <em>input() answer</em> box next to Run is what the user types when your script asks.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: int('7') + 1" data-label="Python shell for radius and area"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first (with the answer in the input() box), so you get the latest results.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc. The posting asks for an <code>hw2.py</code> file: the report holds your scripts, or use <em>Copy</em> on each editor and paste into IDLE.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached.</p>
+    <ul>
+      <li>The posting leaves the variable names open; this page asks for <code>first_name</code>, <code>last_name</code>, <code>radius</code> and <code>area</code> so it can check them. Names and radius value are the student's own: the page checks the types, the formula and that the printed area matches the radius used.</li>
+      <li><strong>input().</strong> A web page can't pause Python to wait for typing, so the bonus script has an <em>input() answer</em> box next to Run; the output shows the prompt and the answer together, as a terminal would.</li>
+      <li>Points are the page's own (15 + 15 + 20, then 10 + 20 + 20); the bonus is 50 as posted (20 + 15 + 15). Change them in <code>lesson.js</code> if your rubric differs.</li>
+      <li>Each task has two checks. The <strong>practice check</strong> is the box under the task; the <strong>homework.py</strong> check is the graded one.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>

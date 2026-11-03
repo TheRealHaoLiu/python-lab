@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homework 1 · The Python Shell</title>
+<meta name="description" content="Python practice for the first homework: the shell, variables and their types, and the arithmetic operators, with a real Python shell in the browser.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../css/lab.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 1</div>
+    <h1><span class="v">The Python Shell</span> Lab</h1>
+    <p class="lede">The <strong>shell</strong> is where you talk to Python one line at a time. The three <code>&gt;&gt;&gt;</code> are Python asking for your next line. Type a value and it answers with the value; put a label on a value with <code>=</code> and it remembers it.</p>
+    <div class="idea">
+      <div class="kind-card is-var">
+        <h3><span class="glyph">&gt;&gt;&gt;</span> Shell vs. script</h3>
+        <div class="demo pre">&gt;&gt;&gt; a = 1
+&gt;&gt;&gt; a + 2
+3</div>
+        <ul>
+          <li>In the shell, a line like <code>a + 2</code> shows its answer at once.</li>
+          <li>In a saved script (<code>hello.py</code>) it shows nothing: write <code>print(a + 2)</code>.</li>
+          <li>On your computer this is IDLE. Here it is the same Python, in the page.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-var">
+        <h3><span class="glyph">%</span> Types and operators</h3>
+        <div class="demo">1 → int   1.0 → float   "hi" → str</div>
+        <ul>
+          <li><code>/</code> divides and keeps the decimals; <code>//</code> keeps only the whole number.</li>
+          <li><code>%</code> is the remainder: <code>29 % 7</code> is 1 (four sevens, one left over).</li>
+          <li><code>**</code> is a power: <code>2 ** 10</code> is 1024. <code>*</code> multiplies, and repeats a string: <code>"ab" * 3</code>.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Press the 13 homework lines in order and watch the labels appear.</li>
+      <li><b>2</b> Try each task in its check box until you get ✓.</li>
+      <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="var">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Try the Shell</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">The homework asks you to type thirteen lines into IDLE and then answer questions about the variables. Press each line here, in order, and watch what Python answers and which labels appear.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">the 13 lines from the homework</span></div>
+      <div class="vals"><div class="val" data-val="q1"></div><div class="val" data-val="q1:b"></div><div class="val" data-val="q1:c"></div><div class="val" data-val="q1:d"></div><div class="val" data-val="q1:e"></div></div>
+      <ol class="transcript">
+        <li><button type="button" class="btn" data-run="q1" data-code="a = 1">a = 1</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="b = 2">b = 2</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="a+b">a+b</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="c = &quot;This is a String&quot;">c = "This is a String"</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="print (c)">print (c)</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="d = 1.0">d = 1.0</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="100/3">100/3</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="100//3">100//3</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="2**100">2**100</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="29%7">29%7</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="20%3">20%3</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="e = c*3">e = c*3</button></li>
+        <li><button type="button" class="btn" data-run="q1" data-code="print(e)">print(e)</button></li>
+      </ol>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="type(a)">type(a)</button>
+        <button type="button" class="btn" data-run="q1" data-code="type(c)">type(c)</button>
+        <button type="button" class="btn" data-run="q1" data-code="type(d)">type(d)</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="a + c">Try: a + c</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">A line with <code>=</code> answers nothing: it just sticks a label on. A line without <code>=</code> answers with its value. The badge next to each box is its <strong>type</strong>: <code>int</code>, <code>float</code> or <code>str</code>. Adding a number to a string is a <strong>TypeError</strong>.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: a * 10" data-label="Python shell for a, b, c, d and e"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="var">
+    <div class="q-head"><span class="q-num">Q2</span><h2>What the Operators Do</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">Two questions to answer in your own words: why <code>100/3</code> and <code>100//3</code> differ, and what <code>**</code>, <code>%</code> and <code>*</code> mean. Experiment first.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">x = 100, y = 3</span></div>
+      <div class="vals"><div class="val" data-val="q2"></div><div class="val" data-val="q2:y"></div></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="x / y">x / y</button>
+        <button type="button" class="btn" data-run="q2" data-code="x // y">x // y</button>
+        <button type="button" class="btn" data-run="q2" data-code="type(x / y)">type(x / y)</button>
+        <button type="button" class="btn" data-run="q2" data-code="type(x // y)">type(x // y)</button>
+        <button type="button" class="btn" data-run="q2" data-code="x % y">x % y</button>
+        <button type="button" class="btn" data-run="q2" data-code="x ** 2">x ** 2</button>
+        <button type="button" class="btn" data-run="q2" data-code="y * 7">y * 7</button>
+        <button type="button" class="btn" data-run="q2" data-code="y * 'ab'">y * 'ab'</button>
+        <button type="button" class="btn" data-run="q2" data-code="x = 7">x = 7</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">Set <code>x = 7</code> and press <code>x / y</code>, <code>x // y</code> and <code>x % y</code> again: 7 divided by 3 is 2 with 1 left over. <code>//</code> gives the 2, <code>%</code> gives the 1, and <code>/</code> gives 2.333…</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: 17 % 5" data-label="Python shell for x and y"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your two scripts and what they printed. It re-runs your scripts first, so you get the latest results. (The homework's second part, making a <code>pythonClass</code> folder on your own computer, has nothing to hand in here.)</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached.</p>
+    <ul>
+      <li>The posted question 1 is a shell exercise. Here the 13 lines are buttons on a real shell, and the script version of the same lines is the student's homework.py: the bare expressions must be wrapped in <code>print()</code> to show anything, which is the first lesson about scripts.</li>
+      <li>The counting and type questions (how many variables; which are int, str, float) are checked: 5; a and b; c and e; d. The two explanations (<code>/</code> vs <code>//</code>, and <code>**</code>, <code>%</code>, <code>*</code>) are for you to grade; the page only checks that the relevant ideas appear.</li>
+      <li>Points are the page's own: 5 per line in Q1 (seven print lines, then the four count-and-type questions), 20 + 25 for the two explanations in Q2. Change them in <code>lesson.js</code> if your rubric differs. The posted question 2 (creating a folder) is not on this page.</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../js/config.js?v=__BUILD__"></script>
+<script src="../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../js/app.js?v=__BUILD__"></script>
+</body>
+</html>
