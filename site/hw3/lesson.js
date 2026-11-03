@@ -63,25 +63,25 @@ print(score_text % (____, ____))
           {
             pts: 10, text: 'Part A: fix <code>sentence</code> so that <code>print(sentence % color)</code> prints <code>My favorite color is blue</code>.',
             hint: 'The blank <code>____</code> is where the slot goes. A slot is written <code>%s</code>: it is a marker for a value that arrives later.',
-            cell: { stmt: true, asserts: ["sentence % color == 'My favorite color is blue'"], must: [/sentence\s*=/, 'Change the sentence variable: sentence = "…"'] },
+            cell: { stmt: true, asserts: ["sentence % color == 'My favorite color is blue'"], label: '# color is set. Type the fixed sentence = line, with a slot where the blank was:', ph: 'sentence = "My favorite color is …"', must: [/sentence\s*=/, 'Change the sentence variable: sentence = "…"'] },
             check: c => c.printed('My favorite color is blue') && has(c, /sentence\s*%\s*color/) && /%s/.test(literalOf(c, 'sentence') || ''),
           },
           {
             pts: 10, text: 'Part B: fill the blanks so it prints <code>Rocket: a vehicle for traveling to Mars</code>. Use the two variables.',
             hint: 'Two slots, two values, in order: the first value goes into the first <code>%s</code>. Try it in the picture with <code>vehicle_text</code>.',
-            cell: { expect: "'Rocket: a vehicle for traveling to Mars'", must: [/thing1/, 'Right text, but use the variables: (thing1, thing2).'] },
+            cell: { expect: "'Rocket: a vehicle for traveling to Mars'", label: '# vehicle_text, thing1 and thing2 are set. Type the filled-in expression:', ph: 'vehicle_text % (…, …)', must: [/thing1/, 'Right text, but use the variables: (thing1, thing2).'] },
             check: c => c.printed('Rocket: a vehicle for traveling to Mars') && has(c, /vehicle_text\s*%\s*\(\s*thing1\s*,\s*thing2\s*\)/),
           },
           {
             pts: 10, text: "Part C: fill the blanks so it prints <code>What did the cat say to the dog? Let's be friends!</code>",
             hint: 'There are no variables for these, so put the words in as strings, with quotes. Try <code>animal_joke</code> in the picture.',
-            cell: { expect: "\"What did the cat say to the dog? Let's be friends!\"", must: [/animal_joke\s*%/, 'Right text, but fill the slots of animal_joke with %.'] },
+            cell: { expect: "\"What did the cat say to the dog? Let's be friends!\"", label: '# animal_joke is set. Type the filled-in expression:', ph: "animal_joke % ('…', '…')", must: [/animal_joke\s*%/, 'Right text, but fill the slots of animal_joke with %.'] },
             check: c => c.printed("What did the cat say to the dog? Let's be friends!") && has(c, /animal_joke\s*%\s*\(/),
           },
           {
             pts: 10, text: 'Part D: fill the blanks so it prints <code>Player 7 scored 42 points</code>.',
             hint: 'Numbers go in without quotes. <code>%s</code> turns anything into text.',
-            cell: { expect: "'Player 7 scored 42 points'", must: [/score_text\s*%/, 'Right text, but fill the slots of score_text with %.'] },
+            cell: { expect: "'Player 7 scored 42 points'", label: '# score_text is set. Type the filled-in expression:', ph: 'score_text % (…, …)', must: [/score_text\s*%/, 'Right text, but fill the slots of score_text with %.'] },
             check: c => c.printed('Player 7 scored 42 points') && has(c, /score_text\s*%\s*\(/),
           },
           {
@@ -107,7 +107,7 @@ joke = "${JOKE}"
           {
             pts: 10, text: 'Store a joke template string containing two <code>%s</code> slots in the variable <code>joke</code>. Keep the one given, or write your own.',
             hint: 'Count the <code>%s</code> in your string: exactly two. Type the line below and press Check.',
-            cell: { stmt: true, asserts: ["joke.count('%s') == 2"], must: [/joke\s*=/, 'Assign it to joke: joke = "…"'] },
+            cell: { stmt: true, asserts: ["joke.count('%s') == 2"], label: '# Type your template line:', ph: 'joke = "… %s … %s …"', must: [/joke\s*=/, 'Assign it to joke: joke = "…"'] },
             check: c => { const t = literalOf(c, 'joke'); return !!t && slots(t, '%s') === 2; },
           },
           {
@@ -141,7 +141,7 @@ joke = "${JOKE}"
           {
             pts: 10, text: 'Rewrite your joke generator using <code>{}</code> placeholders and <code>.format()</code> instead of <code>%s</code>. Print it three times.',
             hint: 'Switch the picture to <em>{} and .format()</em>: the slots become <code>{}</code>, and the values go in <code>.format(…)</code> after the string.',
-            cell: { stmt: true, asserts: ["joke.count('{}') == 2", "'%s' not in joke"], must: [/joke\s*=/, 'Assign it to joke: joke = "…"'] },
+            cell: { stmt: true, asserts: ["joke.count('{}') == 2", "'%s' not in joke"], label: '# Type the template line with {} slots:', ph: 'joke = "… {} … {} …"', must: [/joke\s*=/, 'Assign it to joke: joke = "…"'] },
             check: c => { const t = literalOf(c, 'joke'); if (!t || slots(t, '{}') !== 2) return false; return (c.code.match(/\.format\s*\(/g) || []).length >= 3 && fits(c, t, '{}', c.outputs).length >= 3; },
           },
           {

@@ -917,11 +917,10 @@ function cellHTML(q, t, k) {
     // A guess (c.ok) is written before running the line; an explanation comes after.
     return `<div class="pc" data-pc="${k}">${c.ok ? write + tryIt : tryIt + write}</div>`;
   }
-  if (c.stmt) return `<div class="pc" data-pc="${k}">
-    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="type a line of Python" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
-    <div class="pc-res" data-res></div></div>`;
-  return `<div class="pc" data-pc="${k}">
-    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="type a line of Python" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
+  // one-line boxes (an expression or a statement); c.label is a comment-style instruction above the line
+  const label = c.label ? `<span class="pc-label h-c">${esc(c.label)}</span>` : '';
+  return `<div class="pc" data-pc="${k}">${label}
+    <div class="pc-line"><span class="pr">&gt;&gt;&gt;</span><div class="pc-in" data-cm data-ph="${esc(c.ph || 'type a line of Python')}" data-label="Your line of Python for task ${k + 1}"></div><button type="button" class="pc-btn" data-check>Check</button></div>
     <div class="pc-res" data-res></div></div>`;
 }
 const cellText = (q, k) => S[q.id].inputs[k] ?? (q.tasks[k].cell && q.tasks[k].cell.start) ?? '';
