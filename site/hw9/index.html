@@ -64,16 +64,18 @@ print(double(21))</div>
     <p class="story">A robot chef only knows recipes it has been taught. Teach it a few: one that says hello, one that counts savings, one that measures a rectangle.</p>
     <div class="bench">
       <div class="bench-top"><span class="label">Explore</span><span class="badge">the function machine</span></div>
+      <div class="vals"><div class="val" data-val="q1"></div></div>
       <div class="fnpic" data-fn="q1"></div>
       <div class="controls">
         <button type="button" class="btn" data-run="q1" data-code="savings(10, 10, 5)">savings(10, 10, 5)</button>
         <button type="button" class="btn" data-run="q1" data-code="savings(20, 0, 5)">savings(20, 0, 5)</button>
         <button type="button" class="btn" data-run="q1" data-code="wave(who)">wave(who)</button>
+        <button type="button" class="btn" data-run="q1" data-code="who = 'Mary'">who = 'Mary'</button>
         <button type="button" class="btn warn" data-run="q1" data-code="savings(10, 10)">Try: savings(10, 10)</button>
         <button type="button" class="btn warn" data-run="q1" data-code="print(wave('Mary'))">Try: print(wave('Mary'))</button>
         <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
       </div>
-      <p class="tip">Three parameters need three arguments: <code>savings(10, 10)</code> is a <strong>TypeError</strong>. And <code>wave()</code> prints but returns nothing, so <code>print(wave('Mary'))</code> shows the hello and then <code>None</code>.</p>
+      <p class="tip"><code>wave(who)</code> passes a <em>variable</em> as the argument: the box above shows what <code>who</code> holds right now, and <code>who = 'Mary'</code> changes it. Three parameters need three arguments: <code>savings(10, 10)</code> is a <strong>TypeError</strong>. And <code>wave()</code> prints but returns nothing, so <code>print(wave('Mary'))</code> shows the hello and then <code>None</code>.</p>
       <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: triangle_area(10, 3)" data-label="Python shell for the recipes"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
