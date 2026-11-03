@@ -862,6 +862,8 @@ function gradeCore(q, res, raw) {
     // a variable as the script left it: dict(name) -> {key: value}, list(name) -> [items]; null if it isn't one
     dict: name => { const o = fin(name); return o && o.t === 'dict' ? Object.fromEntries(o.items.map(([k, x]) => [display(k), x])) : null; },
     list: name => { const o = fin(name); return o && o.t === 'list' ? o.items : null; },
+    // a plain variable as the script left it: a number, a string, or for anything else its repr text; undefined if unset
+    value: name => { const o = fin(name); return o && o.t === 'other' ? o.r : o; },
     explained: () => WHY_RE.test(raw.split('\n').map(commentText).filter(t => t && !starterComments.has(t)).join(' ').toLowerCase()),
     ran: !res.syntax,
     // each top-level if statement, tried with every q.probe value: {line, outs: [printed lines | null], ops, elifs, else}
