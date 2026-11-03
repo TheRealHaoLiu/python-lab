@@ -425,3 +425,5 @@ pre.report{background:var(--code-bg);color:var(--code-ink);border-radius:10px;pa
 .transcript li{display:flex;align-items:center;gap:6px;counter-increment:tl}
 .transcript li::before{content:counter(tl);font:600 11px var(--f-code);color:var(--muted);min-width:2ch;text-align:right}
 .transcript .btn{font-family:var(--f-code)}
+.chip-btn{cursor:pointer;border-style:dashed;color:var(--muted);margin-left:auto}
+.chip-btn[data-armed]{border-color:var(--err);color:var(--err);border-style:solid}

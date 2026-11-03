@@ -1076,8 +1076,23 @@ function paintScores() {
     el.textContent = `${t.got} / ${t.max} pts · ${t.checks}/${t.cells} checks`; el.classList.toggle('full', t.got === t.max);
     return `<a class="chip" href="#${q.id}">${q.id.toUpperCase()} ${q.title}${q.bonus ? ' (bonus)' : ''} · ${t.got}/${t.max}</a>`;
   });
-  $('#scoreboard').innerHTML = `<span class="chip total">Score ${got} / ${max}${bonus ? ` + ${bonus} bonus` : ''}</span>` + chips.join('') + '<a class="chip" href="#handin">Hand in →</a>';
+  $('#scoreboard').innerHTML = `<span class="chip total">Score ${got} / ${max}${bonus ? ` + ${bonus} bonus` : ''}</span>` + chips.join('') + '<a class="chip" href="#handin">Hand in →</a>'
+    + '<button type="button" class="chip chip-btn" id="reset-all" title="Forget everything saved for this homework in this browser and start fresh">Start over</button>';
 }
+/* Start the whole homework over: forget this lesson's saved code, check inputs and scores (not the
+   student's name), then reload. Two clicks, like the editor's Start over. */
+let resetAllTimer = null;
+document.addEventListener('click', e => {
+  const b = e.target.closest('#reset-all'); if (!b) return;
+  if (!b.dataset.armed) {
+    b.dataset.armed = '1'; b.textContent = 'Sure? Click again to erase this homework';
+    clearTimeout(resetAllTimer); resetAllTimer = setTimeout(() => { delete b.dataset.armed; b.textContent = 'Start over'; }, 4000);
+    return;
+  }
+  const prefix = `pylab:v1:${LESSON_ID}:`;
+  try { Object.keys(localStorage).filter(k => k.startsWith(prefix) && k !== prefix + 'name').forEach(k => localStorage.removeItem(k)); } catch (err) { /* private mode */ }
+  location.reload();
+});
 
 /* ---------- copy ---------- */
 function copyText(text, btn, fallbackEl) {
