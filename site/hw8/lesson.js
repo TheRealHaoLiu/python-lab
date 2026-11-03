@@ -19,7 +19,9 @@
   const nums = (a, b) => { const o = []; for (let k = a; k < b; k++) o.push(String(k)); return o; };
 
   const WIZ = ['spider legs', 'toe of frog', 'snail tongue', 'bat wing', 'slug butter', 'bear burp'];
-  const WIZ2 = ['newt eye', 'owl feather', 'moon dust'];
+  // the second test list has the SAME length as the first, so loops by index (range(0, 6),
+  // range(len(...))) stay correct; only hand-typed names fail
+  const WIZ2 = ['newt eye', 'owl feather', 'moon dust', 'troll sweat', 'ghost pepper', 'frog breath'];
   // "What does range(1, 10) produce?": 1 to 9 listed in order, and not 10 (the words "range(1, 10)" don't count)
   const RANGE9 = text => {
     const t = text.replace(/range\s*\(\s*1\s*,\s*10\s*\)/gi, ' ');
@@ -29,7 +31,7 @@
 
   const COINS = m => { const out = []; let c = 20; for (let w = 1; w <= 52; w++) { c += m - 3; out.push(`Week ${w} = ${c}`); } return out; };
   const PAIRS = L => L.flatMap(a => L.map(b => `${a} ${b}`));
-  const HHP = ['huge', 'hairy', 'pants'], HHP2 = ['big', 'small'];
+  const HHP = ['huge', 'hairy', 'pants'], HHP2 = ['red', 'green', 'blue'];  // same length, see WIZ2
   const NO_INDENT = [/^for[^\n]*:\s*\n(?!\s)/m, 'The line under for must be indented 4 spaces.'];
 
   window.LESSON = {
