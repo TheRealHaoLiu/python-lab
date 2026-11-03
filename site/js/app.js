@@ -142,7 +142,7 @@ function renderPicture(q, h) {
   if (q.fmt && S[q.id].fm) loadFmt(q);  // the template may have changed at the >>> prompt
 }
 /* A plain value (None, a string, a number): one box with its type underneath. */
-const TYPE = v => v === null ? 'NoneType' : typeof v === 'string' ? 'str' : typeof v === 'number' ? 'int' : typeof v === 'boolean' ? 'bool' : v.t === 'other' ? '' : v.t;
+const TYPE = v => v === null ? 'NoneType' : typeof v === 'string' ? 'str' : typeof v === 'number' ? 'int' : typeof v === 'boolean' ? 'bool' : v.t === 'other' ? (/^-?\d+\.\d*(e[+-]?\d+)?$|^-?inf$|^nan$/.test(v.r) ? 'float' : '') : v.t;
 function renderVal(q, name) {
   const el = $(`[data-val="${rowKey(q, name)}"]`); if (!el) return;
   const cur = S[q.id].vals[name] || { exists: false, value: null };
