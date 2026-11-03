@@ -16,9 +16,9 @@
     title: 'Homework 9: Functions (draft)',
     questions: [
       {
-        id: 'q1', title: "Robot Chef's Recipes", var: 'who', vars: ['who'], setup: `who = 'Owen'\n\n${SAVINGS}\n\ndef wave(name):\n    print('Hi %s, welcome aboard!' % name)\n\ndef triangle_area(base, height):\n    return base * height / 2`,
-        init: () => 'Owen', probe: { var: 'who', values: ['Mary', 'Owen'] },
-        cellSetup: "who = 'Owen'",  // the practice boxes must define the functions themselves
+        id: 'q1', title: "Robot Chef's Recipes", var: 'recipe', vars: ['recipe'], setup: `${SAVINGS}\n\ndef wave(name):\n    print('Hi %s, welcome aboard!' % name)\n\ndef triangle_area(base, height):\n    return base * height / 2`,
+        init: () => ({}),
+        cellSetup: '',  // the practice boxes must define the functions themselves
         fn: {
           functions: [
             { code: SAVINGS, args: ['10', '10', '5'] },
@@ -26,10 +26,8 @@
             { code: 'def triangle_area(base, height):\n    return base * height / 2', args: ['6', '4'] },
           ],
         },
-        starter: `who = "Owen"
-
-# 1. Write a function greet(name) that prints "Hello, <name>!", then call it
-#    twice with two different names (one of them: greet(who)).
+        starter: `# 1. Write a function greet(name) that prints "Hello, <name>!", then call it
+#    twice with two different names.
 
 
 # 2. Write the savings function from class, with return, and print savings(10, 10, 5):
@@ -54,13 +52,13 @@
           {
             pts: 10, text: 'Write a function <code>greet(name)</code> that prints <code>Hello, &lt;name&gt;!</code>, then call it twice with two different names.',
             hint: 'A function is a recipe with a name. <code>def greet(name):</code> writes the recipe; the indented block is what it does; <code>greet("Mary")</code> cooks it. Nothing happens until you call it. Try <code>wave()</code> in the picture.',
-            cell: { prog: v => `Hello, ${v}!`, label: '# who is already set. Type the def, then one call: greet(who)', ph: 'def greet(name):\n    print(…)\ngreet(who)', must: [/\bdef\s+greet\s*\(/, 'That prints the right thing, but write it as a function called greet.'], anchor: '#    twice with two different names (one of them: greet(who)).' },
+            cell: { prog: () => ['Hello, Mary!', 'Hello, Owen!'], values: [''], label: "# Type the def, then two calls: greet('Mary') and greet('Owen')", ph: "def greet(name):\n    print(…)\ngreet('Mary')\ngreet('Owen')", must: [/\bdef\s+greet\s*\(/, 'That prints the right thing, but write it as a function called greet.'], anchor: '#    twice with two different names.' },
             check: c => has(c, DEF('greet', '\\w+')) && (c.code.match(/^\s*greet\s*\(/gm) || []).length >= 2 && new Set(c.outputs.filter(l => /^Hello, .+!$/.test(l))).size >= 2,
           },
           {
             pts: 10, text: 'Write the <code>savings</code> function from class, with <code>return</code>, and print <code>savings(10, 10, 5)</code>.',
             hint: '<code>return</code> hands a value back to whoever called. Step the picture: <code>savings(10, 10, 5)</code> prints nothing by itself, it <em>returns</em> 15, so you print the call.',
-            cell: { prog: () => '15', values: ['Owen'], label: '# Type the def with return, then print(savings(10, 10, 5)):', ph: 'def savings(pocket_money, paper_route, spending):\n    return …\nprint(savings(10, 10, 5))', must: [/\breturn\b/, 'Right number, but the function must return it.'], anchor: '#            return pocket_money + paper_route - spending' },
+            cell: { prog: () => '15', values: [''], label: '# Type the def with return, then print(savings(10, 10, 5)):', ph: 'def savings(pocket_money, paper_route, spending):\n    return …\nprint(savings(10, 10, 5))', must: [/\breturn\b/, 'Right number, but the function must return it.'], anchor: '#            return pocket_money + paper_route - spending' },
             check: c => has(c, DEF('savings', '\\w+\\s*,\\s*\\w+\\s*,\\s*\\w+')) && has(c, /\breturn\b/) && c.printed('15') && has(c, CALL('savings', '10\\s*,\\s*10\\s*,\\s*5')),
           },
           {
@@ -72,13 +70,13 @@
           {
             pts: 5, text: "Rewrite the student's <code>add</code> function so that <code>print(add(2, 3))</code> prints <code>5</code>.",
             hint: 'One word fixes it.',
-            cell: { prog: () => '5', values: ['Owen'], start: 'def add(a, b):\n    total = a + b\nprint(add(2, 3))', label: "# The student's code. Fix the function:", must: [/\breturn\b/, 'Right number, but fix the function rather than printing 5.'], anchor: '# 4. Rewrite the student\'s add function so that print(add(2, 3)) prints 5.' },
+            cell: { prog: () => '5', values: [''], start: 'def add(a, b):\n    total = a + b\nprint(add(2, 3))', label: "# The student's code. Fix the function:", must: [/\breturn\b/, 'Right number, but fix the function rather than printing 5.'], anchor: '# 4. Rewrite the student\'s add function so that print(add(2, 3)) prints 5.' },
             check: c => has(c, DEF('add', '\\w+\\s*,\\s*\\w+')) && has(c, /return\s+(total|a\s*\+\s*b)/) && c.printed('5') && has(c, CALL('add', '2\\s*,\\s*3')),
           },
           {
             pts: 15, text: 'Write a function <code>rectangle_area(length, width)</code> that <em>returns</em> length times width. Print <code>rectangle_area(3, 4)</code> and <code>rectangle_area(10, 2)</code>.',
             hint: 'Two parameters, one <code>return</code>. Compare <code>triangle_area</code> in the picture: same shape, different maths.',
-            cell: { prog: () => ['12', '20'], values: ['Owen'], label: '# Type the def, then the two prints:', ph: 'def rectangle_area(length, width):\n    return …\nprint(rectangle_area(3, 4))\nprint(rectangle_area(10, 2))', must: [/\breturn\b/, 'Right numbers, but the function must return the area.'], anchor: '#    width. Print rectangle_area(3, 4) and rectangle_area(10, 2).' },
+            cell: { prog: () => ['12', '20'], values: [''], label: '# Type the def, then the two prints:', ph: 'def rectangle_area(length, width):\n    return …\nprint(rectangle_area(3, 4))\nprint(rectangle_area(10, 2))', must: [/\breturn\b/, 'Right numbers, but the function must return the area.'], anchor: '#    width. Print rectangle_area(3, 4) and rectangle_area(10, 2).' },
             check: c => has(c, DEF('rectangle_area', '\\w+\\s*,\\s*\\w+')) && has(c, /\breturn\b/) && c.printed('12') && c.printed('20') && has(c, CALL('rectangle_area', '3\\s*,\\s*4')) && has(c, CALL('rectangle_area', '10\\s*,\\s*2')),
           },
         ],

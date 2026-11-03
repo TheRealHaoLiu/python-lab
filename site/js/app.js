@@ -1036,7 +1036,8 @@ function cellSpecs(q) {
     const input = (st.inputs[k] || '').trim();
     if (c.prog) {
       const vals = c.values || q.probe.values;
-      return { kind: 'prog', input: cellText(q, k), want: vals.map(c.prog), var: q.probe.var, values: vals.map(pyLit) };
+      // a page without a probe can still use a code box: it runs once (values: ['']) and the variable is unused
+      return { kind: 'prog', input: cellText(q, k), want: vals.map(c.prog), var: q.probe ? q.probe.var : q.var, values: vals.map(pyLit) };
     }
     // skip: the answer was typed in instead of reached through the variable (cell.free: the task has no variable, like 100//3)
     return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !c.free && !!input && !varRe.test(input) };
@@ -1058,7 +1059,7 @@ function composeCell(q, t, k, r) {
   if (r.state === 'blocked') return { state: 'blocked', lines: r.has_input ? [['note', `Finish task ${r.blocked_by + 1} first. This list depends on it.`]] : [] };
   if (r.state === 'skip') return { state: 'fail', lines: [['note', `Use ${q.vars.length > 1 ? 'one of the variables (' + q.vars.join(', ') + ')' : q.var} to get there. Typing the answer in directly doesn't count.`]] };
   if (c.prog) {
-    const v = q.probe.var, vals = c.values || q.probe.values;
+    const v = q.probe ? q.probe.var : q.var, vals = c.values || q.probe.values;
     const trap = (c.traps || []).find(([re]) => re.test(input));
     // setting the variable yourself means every test value prints the same thing
     const sets = !c.values && new RegExp(`^\\s*${v}\\s*=(?!=)`, 'm').test(input);
