@@ -586,6 +586,68 @@ async function runFmt(q) {
   out.innerHTML = `<div class="fm-result">${filled}</div>`;
 }
 
+/* ---------- function machine (hw9) ----------
+   q.fn = {functions: [{code: 'def name(params):\n    ...', args: [python literals]}]}.
+   The def is shown as code; the student types a value per parameter, Python runs the real call,
+   and the picture shows what the body printed and what the call returned (None when there is no
+   return line). Scope is shown by the >>> prompt: a body variable is not there after the call. */
+function buildFn(q) {
+  const f = q.fn, host = $(`[data-fn="${q.id}"]`); if (!f || !host) return;
+  const st = S[q.id];
+  st.fn = { i: 0, vals: {}, res: null };
+  f.functions.forEach((d, k) => { d.name = (/def\s+(\w+)\s*\(([^)]*)\)/.exec(d.code) || [])[1] || `f${k}`; d.params = ((/def\s+\w+\s*\(([^)]*)\)/.exec(d.code) || [])[1] || '').split(',').map(x => x.trim()).filter(Boolean); st.fn.vals[d.name] = (store.get(q.id + ':fn:' + d.name) || '').split('\u0001').filter(Boolean); if (!st.fn.vals[d.name].length) st.fn.vals[d.name] = [...(d.args || [])]; });
+  host.innerHTML = `
+    ${f.functions.length > 1 ? `<div class="seg fl-progs" role="group" aria-label="Pick a function">${f.functions.map((d, k) => `<button type="button" data-fn-pick="${k}" aria-pressed="${k === 0}">${esc(d.name)}()</button>`).join('')}</div>` : ''}
+    <div class="fl-run fn-run">
+      <div class="fl-code" data-fn-code></div>
+      <div class="fn-side">
+        <div class="fn-args" data-fn-args></div>
+        <div class="fm-code" data-fn-call></div>
+        <div class="fl-out"><span class="label">prints</span><div data-fn-out></div><div class="fn-ret" data-fn-ret></div></div>
+      </div>
+    </div>`;
+  $$('[data-fn-pick]', host).forEach(b => b.addEventListener('click', () => { st.fn.i = +b.dataset.fnPick; $$('[data-fn-pick]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); paintFnArgs(q); runFn(q); }));
+  paintFnArgs(q); runFn(q);
+}
+const fnCur = q => q.fn.functions[S[q.id].fn.i];
+function paintFnArgs(q) {
+  const st = S[q.id], host = $(`[data-fn="${q.id}"]`), d = fnCur(q), vals = st.fn.vals[d.name];
+  $('[data-fn-code]', host).innerHTML = d.code.split('\n').map((l, k) => `<div class="fl-ln"><span class="fl-no">${k + 1}</span><code>${hl(l)}</code></div>`).join('');
+  const args = $('[data-fn-args]', host); args.innerHTML = d.params.length ? '' : '<span class="tip">This function takes no arguments: the parentheses stay empty.</span>';
+  d.params.forEach((p, k) => {
+    const row = document.createElement('div'); row.className = 'fm-slotrow';
+    row.innerHTML = `<span class="fm-no">${esc(p)}</span><span class="pr">=</span><div class="pc-in" data-arg="${k}"></div>`;
+    args.appendChild(row);
+    let tt = null;
+    lineEditor(q, $('[data-arg]', row), {
+      initial: vals[k] || '', placeholder: 'a value', label: `Value for ${p}`,
+      onEnter: () => runFn(q),
+      onChange: v => { vals[k] = v; store.set(q.id + ':fn:' + d.name, vals.join('\u0001')); clearTimeout(tt); tt = setTimeout(() => runFn(q), 400); },
+    });
+  });
+}
+async function runFn(q) {
+  const st = S[q.id], host = $(`[data-fn="${q.id}"]`), d = fnCur(q);
+  const args = (st.fn.vals[d.name] || []).map(v => v.trim()), out = $('[data-fn-out]', host), ret = $('[data-fn-ret]', host);
+  const call = `${d.name}(${args.join(', ')})`;
+  $('[data-fn-call]', host).innerHTML = `<span class="pr">&gt;&gt;&gt;</span> ${hl(call)}`;
+  if (d.params.length && args.some(a => !a)) { out.innerHTML = '<div class="s-note">type a value for each parameter</div>'; ret.innerHTML = ''; return; }
+  let r;
+  try { r = await Py.call('shell', { qid: q.id, src: `__call_result = ${call}`, var: q.var, vars: q.vars, setup: q.setup }); }
+  catch (e) { r = { lines: [['err', failText(e)]] }; }
+  st.vals = r.state || st.vals;
+  const errs = r.lines.filter(l => l[0] === 'err'), outs = r.lines.filter(l => l[0] === 'out');
+  out.innerHTML = outs.length ? foldLines(outs.map(l => l[1]), 8).map(x => `<div class="s-out">${esc(x)}</div>`).join('') : errs.length ? '' : '<div class="s-note">(nothing printed)</div>';
+  if (errs.length) { out.innerHTML += `<div class="s-err">${esc(errs[0][1])}</div>`; ret.innerHTML = ''; return; }
+  let p;
+  try { p = await Py.call('peek', { qid: q.id, expr: '__call_result', var: q.var, setup: q.setup }); } catch (e) { p = { error: failText(e) }; }
+  const v = p.error ? '?' : p.repr;
+  ret.innerHTML = v === 'None'
+    ? `<span class="fl-chip skip">returns None</span> <span class="s-note">${/\breturn\b/.test(d.code) ? 'this path has no return value' : 'no return line, so the call hands back nothing'}</span>`
+    : `<span class="fl-chip yes">returns ${esc(v)}</span>`;
+  renderPicture(q, null);
+}
+
 /* ---------- the >>> prompt under each picture ---------- */
 async function shellRun(q, code, opts = {}) {
   const st = S[q.id]; code = code.trim(); if (!code) return null;
@@ -1191,14 +1253,14 @@ function setStatus(state, detail) {
 Py.on((state, d) => {
   if (state === 'ready') {
     S.version = d.version; setStatus('ready', d.version);
-    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); });
+    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); if (q.fn) runFn(q); });
   } else setStatus(state, d);
 });
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
   S[q.id].never = new Set(Object.entries(S[q.id].vals).filter(([, v]) => v.never).map(([k]) => k));
-  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q);
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q); buildFn(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
     row.addEventListener('click', e => {
