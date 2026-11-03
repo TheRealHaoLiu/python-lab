@@ -688,9 +688,13 @@ def peek(qid, expr, var, setup):
     if qid not in SHELLS:
         SHELLS[qid] = new_ns(setup)
     try:
-        return {"repr": repr(eval(expr, dict(SHELLS[qid])))}
+        v = eval(expr, dict(SHELLS[qid]))
     except Exception as e:  # noqa: BLE001
         return {"error": last_line(e)}
+    r = {"repr": repr(v)}
+    if isinstance(v, str):
+        r["str"] = v  # the text itself, for pictures that show a string's parts (hw3)
+    return r
 
 
 # ---------- for / while pictures ----------
