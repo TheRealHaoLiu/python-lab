@@ -8,6 +8,7 @@ of the picture a line touched.
 """
 import ast
 import builtins
+import codeop
 import copy
 import io
 import json
@@ -46,18 +47,25 @@ class LoopLimit(Exception):
 
 LoopLimit.__module__ = "builtins"  # shows as "LoopLimit: ..." like a built-in error
 STEP_LIMIT = 20000
+TURTLE_STEP_LIMIT = 8000  # a turtle step draws something, so far fewer are needed to show "this never ends"
+STUDENT_FILES = {SCRIPT, SHELL, CELL, "<loop>", "<flow>", "<draw>"}
+CUR_LINE = None  # the student's line being run right now (set by Budget's tracer)
 
 
 class Budget:
     """Stops student code that never ends (while count < 3 with no count = count + 1)
     cleanly, with its output so far, instead of letting the page kill Python after 5 s."""
 
-    def __init__(self, n=STEP_LIMIT):
-        self.n, self.k = n, 0
+    def __init__(self, n=None):
+        self.n, self.k = n or (STEP_LIMIT if TURTLE is None else TURTLE_STEP_LIMIT), 0
 
     def __enter__(self):
         def tracer(frame, event, arg):
+            global CUR_LINE
+            if frame.f_code.co_filename not in STUDENT_FILES:
+                return None  # library code (the turtle module) isn't the student's steps
             if event == "line":
+                CUR_LINE = frame.f_lineno
                 self.k += 1
                 if self.k > self.n:
                     raise LoopLimit(f"Stopped after {self.n} steps. Does this loop ever end?")
@@ -69,6 +77,99 @@ class Budget:
     def __exit__(self, *exc):
         sys.settrace(self.old)
         return False
+
+
+# ---------- turtle (turtle pages only) ----------
+# The vendored basthon-turtle package (vendor/basthon-turtle/) draws by handing one JSON
+# command per turtle action to a module named basthon_turtle_transport. labkit is that
+# module: each command is stamped with the student's line and kept in TURTLE, and the
+# page draws them (turtle/turtle-view.js). The homework scripts stay plain `import turtle`.
+
+TURTLE = None        # commands since the last reset; None = this page has no turtle
+TURTLE_OWNER = None  # the question whose >>> prompt owns the live turtle picture
+
+
+def turtle_boot(root):
+    """Called once by the worker after the package files are in place."""
+    global TURTLE
+    import types
+    sys.path.insert(0, root)
+    mod = types.ModuleType("basthon_turtle_transport")
+
+    def emit(payload):
+        cmd = json.loads(payload)
+        cmd["line"] = CUR_LINE
+        TURTLE.append(cmd)
+    mod.emit = emit
+    mod.set_event_handler = lambda handler: None
+    sys.modules["basthon_turtle_transport"] = mod
+    from basthon.turtle._startup import install
+    install()
+    TURTLE = []
+
+
+def turtle_reset():
+    """A fresh screen for the >>> prompt (Reset picture, or another question's prompt)."""
+    global TURTLE_OWNER, CUR_LINE
+    if TURTLE is None:
+        return
+    import turtle
+    turtle.restart()
+    del TURTLE[:]
+    TURTLE_OWNER = None
+    CUR_LINE = None
+
+
+class turtle_scratch:
+    """Run homework.py or a practice check on its own screen, leaving the >>> prompt's
+    turtle as it was. The package keeps one Screen (a singleton); swap it out and back."""
+
+    def __enter__(self):
+        global TURTLE, CUR_LINE
+        if TURTLE is None:
+            return self
+        import turtle
+        S = turtle.Singleton._instances
+        self.screen, self.pen, self.cmds, self.cfg = S.pop(turtle.Screen, None), turtle.Turtle._pen, TURTLE, dict(turtle._CFG)
+        turtle.Turtle._pen = None
+        turtle._CFG.update(turtle._default_cfg())
+        TURTLE = []
+        CUR_LINE = None
+        return self
+
+    def __exit__(self, *exc):
+        global TURTLE
+        if TURTLE is None:
+            return False
+        import turtle
+        S = turtle.Singleton._instances
+        self.drawn = TURTLE
+        if self.screen is not None:
+            S[turtle.Screen] = self.screen
+        else:
+            S.pop(turtle.Screen, None)
+        turtle.Turtle._pen = self.pen
+        turtle._CFG.update(self.cfg)
+        TURTLE = self.cmds
+        return False
+
+
+def draw(src, setup=None):
+    """For the picture: run a small program on its own screen and report every turtle
+    command (stamped with the line that made it), what it printed, and any error."""
+    with turtle_scratch() as ts:
+        ns = new_ns(setup)
+        register("<draw>", src)
+        out, err = [], None
+        try:
+            with Capture() as cap, Budget():
+                exec(compile(src, "<draw>", "exec"), ns)
+        except BaseException as e:  # noqa: BLE001
+            err = fmt_exc(e, "<draw>")
+        out = cap.lines()
+    cmds = ts.drawn if TURTLE is not None else []
+    # a loop that never ends is stopped by the step budget; keep the picture a page can draw
+    return {"cmds": cmds[:4000], "more": max(0, len(cmds) - 4000), "out": out, "error": err}
 
 
 # ---------- helpers ----------
@@ -311,20 +412,30 @@ def state(ns, vars):
 
 # ---------- the >>> prompt under each picture ----------
 
-def shell(qid, src, var, setup, reset=False, vars=None):
+def shell(qid, src, var, setup, reset=False, vars=None, replay=False):
+    """replay (turtle pages): the page lost the live picture (it showed a sample program);
+    send every command since the screen was last reset so it can be drawn again."""
+    global TURTLE_OWNER
     vars = vars or [var]
-    if reset or qid not in SHELLS:
+    # a turtle page has one live screen: the first prompt to use it after a reset, or after
+    # another question used it, starts from the question's setup again
+    fresh = reset or qid not in SHELLS or (TURTLE is not None and TURTLE_OWNER != qid)
+    if fresh:
+        turtle_reset()
         SHELLS[qid] = new_ns(setup)
+        TURTLE_OWNER = qid
     ns = SHELLS[qid]
+    n0 = 0 if fresh or replay or TURTLE is None else len(TURTLE)
+    tcmds = lambda: {"turtle": TURTLE[n0:], "turtle_reset": fresh or replay} if TURTLE is not None else {}
     src = src.strip()
     if not src:
-        return {"lines": [], "hl": None, "state": state(ns, vars)}
+        return {"lines": [], "hl": None, "state": state(ns, vars), **tcmds()}
     register(SHELL, src)
     lines = []
     try:
         tree = ast.parse(src, SHELL)
     except SyntaxError as e:
-        return {"lines": [["err", last_line(e)]], "hl": None, "state": state(ns, vars)}
+        return {"lines": [["err", last_line(e)]], "hl": None, "state": state(ns, vars), **tcmds()}
     pre = before_change(tree, ns, vars)
     hl = None
     try:
@@ -358,7 +469,7 @@ def shell(qid, src, var, setup, reset=False, vars=None):
         elif pre and pre["kind"] == "method":
             if isinstance(seq, (list, dict)) and len(seq) > pre["len"]:
                 hl = {"var": pre["var"], "idxs": [len(seq) - 1], "fx": "pop"}
-    return {"lines": lines, "hl": hl, "state": state(ns, vars)}
+    return {"lines": lines, "hl": hl, "state": state(ns, vars), **tcmds()}
 
 
 # ---------- homework.py ----------
@@ -514,23 +625,26 @@ def run(src, var, vars=None, inputs=None, probe=None):
     ns = new_ns()
     entries, outputs = [], []
     INPUTS = None if inputs is None else list(inputs)
-    try:
-        for node in tree.body:
-            entry = _run_node(node, ns)
-            entries.append(entry)
-            outputs += entry["out"]
-            if "error" in entry:
-                break
-    finally:
-        INPUTS = None
-    final = ns.get(var)
-    vals, reprs = finals(ns, vars or [var])
-    res = {"entries": entries, "outputs": outputs[:MAX_LINES],
-           "final": simple(final) if var in ns else None,
-           "final_repr": repr(final) if var in ns else None,
-           "finals": vals, "final_reprs": reprs}
-    if probe:
-        res["probe"] = branches(tree, ns, probe["var"], probe["values"])
+    with turtle_scratch() as ts:
+        try:
+            for node in tree.body:
+                entry = _run_node(node, ns)
+                entries.append(entry)
+                outputs += entry["out"]
+                if "error" in entry:
+                    break
+        finally:
+            INPUTS = None
+        final = ns.get(var)
+        vals, reprs = finals(ns, vars or [var])
+        res = {"entries": entries, "outputs": outputs[:MAX_LINES],
+               "final": simple(final) if var in ns else None,
+               "final_repr": repr(final) if var in ns else None,
+               "finals": vals, "final_reprs": reprs}
+        if TURTLE is not None:
+            res["turtle"] = list(TURTLE)  # before the probe runs the ifs again
+        if probe:
+            res["probe"] = branches(tree, ns, probe["var"], probe["values"])
     return res
 
 
@@ -538,6 +652,7 @@ def step(qid, src, var, restart=False, vars=None, inputs=None):
     global INPUTS
     st = STEPS.get(qid)
     if restart or st is None or st["src"] != src or st["done"]:
+        turtle_reset()  # Step draws on the live screen, so it starts from a blank one
         register(SCRIPT, src)
         try:
             tree = ast.parse(src, SCRIPT)
@@ -551,10 +666,13 @@ def step(qid, src, var, restart=False, vars=None, inputs=None):
         return {"entry": None, "done": True, "outputs": st["outputs"], "final": simple(st["ns"].get(var)) if var in st["ns"] else None,
                 "finals": finals(st["ns"], vars or [var])[0]}
     INPUTS = st["inputs"]  # the same list each step, so answers are used up in order
+    n0 = len(TURTLE) if TURTLE is not None else 0
     try:
         entry = _run_node(st["nodes"][st["i"]], st["ns"])
     finally:
         INPUTS = None
+    if TURTLE is not None:
+        entry["turtle"] = TURTLE[n0:]
     st["i"] += 1
     st["outputs"] += entry["out"]
     st["done"] = "error" in entry or st["i"] >= len(st["nodes"])
@@ -566,6 +684,14 @@ def step(qid, src, var, restart=False, vars=None, inputs=None):
 
 
 # ---------- assert practice cells ----------
+
+def _draw_cell(inp, s):
+    """A turtle practice check: run the student's code on its own screen; the page
+    looks at the commands it drew."""
+    r = draw(inp, s.get("setup"))
+    return {"state": "fail" if r["error"] else "ran", "printed": r["out"],
+            "error": r["error"].splitlines()[-1] if r["error"] else None, "cmds": r["cmds"]}
+
 
 def cells(setup, var, specs, vars=None):
     vars = vars or [var]
@@ -579,6 +705,9 @@ def cells(setup, var, specs, vars=None):
         inp = (s.get("input") or "").strip()
         if kind == "prog":
             out.append(_prog_cell(inp, s, ns) if inp else {"state": "empty"})
+            continue
+        if kind == "draw":
+            out.append(_draw_cell(inp, s) if inp else {"state": "empty"})
             continue
         if blocked is not None:
             out.append({"state": "blocked", "blocked_by": blocked, "has_input": bool(inp)})
@@ -844,7 +973,17 @@ def seq(expr, setup=None, limit=LOOP_LIMIT):
     return {"kind": kind, "n": len(items), "items": [repr(x) for x in items[:limit]], "more": max(0, len(items) - limit)}
 
 
-FUNCS = {"shell": shell, "run": run, "step": step, "cells": cells, "peek": peek, "flow": flow, "trace": trace, "seq": seq}
+def incomplete(src):
+    """For the >>> prompt: does this line need more lines (a block header, an open bracket)?
+    Python's own interactive rule, via codeop."""
+    try:
+        return {"incomplete": codeop.compile_command(src, SHELL, "exec") is None}
+    except (SyntaxError, OverflowError, ValueError):
+        return {"incomplete": False}  # let the real run show the error
+
+
+FUNCS = {"shell": shell, "run": run, "step": step, "cells": cells, "peek": peek, "flow": flow, "trace": trace, "seq": seq, "draw": draw,
+         "incomplete": incomplete}
 
 
 def dispatch(fn, args_json):

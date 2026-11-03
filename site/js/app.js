@@ -10,6 +10,11 @@ const CFG = Object.assign({ pyodide: 'vendor/pyodide/', timeoutMs: 5000 }, windo
 const QS = window.LESSON.questions;
 QS.forEach(q => { q.vars = q.vars || [q.var]; });  // the variables a question draws; q.var is the main one
 const LESSON_ID = window.LESSON.id || 'lesson';
+// Turtle pages (turtle/): Python gets the turtle module, and pictures are drawings (turtle/turtle-view.js).
+const TURTLE = !!window.LESSON.turtle;
+const TURTLE_FILES = ['__init__.py', '_notebook.py', '_pyodide.py', '_standalone.py', '_startup.py', 'svg.py'];
+const TURTLE_METHODS = ['forward', 'backward', 'left', 'right', 'penup', 'pendown', 'color', 'pencolor', 'fillcolor', 'begin_fill', 'end_fill', 'circle', 'goto', 'setheading', 'speed', 'shape', 'width', 'pensize', 'write', 'hideturtle', 'showturtle', 'home', 'clear', 'dot', 'stamp', 'xcor', 'ycor', 'heading', 'position'];
+const TURTLE_MODULE = ['Pen', 'Turtle', 'Screen', 'done', 'bgcolor', 'forward', 'left', 'right', 'color'];
 
 /* ---------- small helpers ---------- */
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -92,6 +97,10 @@ const Py = (() => {
     // (a worker loaded from its own file would get no policy on GitHub Pages).
     if (!workerSrc) {
       const boot = { pyodide: new URL(CFG.pyodide, SITE).href, labkit: withBuild('py/labkit.py') };
+      if (TURTLE) boot.turtle = { files: Object.fromEntries([
+        ...TURTLE_FILES.map(f => ['basthon/turtle/' + f, withBuild('vendor/basthon-turtle/basthon/turtle/' + f)]),
+        ...Object.entries(window.LESSON.turtleFiles || {}).map(([name, path]) => [name, withBuild(path)]),  // extra modules a page wants importable
+      ]) };
       const src = await (await fetch(withBuild('js/py-worker.js'))).text();
       workerSrc = URL.createObjectURL(new Blob([`self.LAB_BOOT = ${JSON.stringify(boot)};\n`, src], { type: 'text/javascript' }));
     }
@@ -691,16 +700,139 @@ async function runFs(q) {
   pieces.innerHTML = parts.map((p, i) => `<span class="fs-piece"><code>{${esc(p.whole)}}</code><span class="arrow">→</span>${vals[i].err ? `<span class="s-err">${esc(vals[i].err)}</span>` : `<b>${esc(vals[i].repr)}</b>${p.spec ? `<i>then ${p.eq ? 'written as name=value' : 'formatted with ' + esc(p.spec)}</i>` : ''}`}</span>`).join('');
 }
 
+/* ---------- turtle pictures (turtle/) ----------
+   q.turtle = {programs: [{label, code}]}: sample programs drawn on the question's canvas.
+   Python runs the program once (labkit draw) and reports every turtle command with the
+   line that made it; the page then plays it, or steps through it one command at a time
+   with that line lit. The >>> prompt under the picture drives the same canvas. */
+// a step the student can see: the turtle appearing (a zero-length move, a zero turn) doesn't count
+const VISIBLE = c => c.type === 'move' ? Math.hypot(c.to[0] - c.from[0], c.to[1] - c.from[1]) > 1e-6 : c.type === 'rotate' ? Math.abs(c.to - c.from) > 1e-6 : c.type === 'polygon' || c.type === 'write' || c.type === 'clear' || c.type === 'background';
+function turtleNote(cmds) {
+  const t = turtleCtx(cmds || []);
+  if (!t.segs.length && !t.fills.length && !t.writes.length) return t.moves ? 'the turtle moved but drew nothing (was the pen up?)' : 'nothing drawn';
+  const parts = [`${t.segs.length} line${t.segs.length === 1 ? '' : 's'} drawn`];
+  if (t.turns.length) parts.push(`${t.turns.length} turn${t.turns.length === 1 ? '' : 's'}`);
+  if (t.fills.length) parts.push(`${t.fills.length} filled shape${t.fills.length === 1 ? '' : 's'}`);
+  if (t.writes.length) parts.push(`${t.writes.length} word${t.writes.length === 1 ? '' : 's'} written`);
+  if (t.colors.length) parts.push(`colours: ${t.colors.join(', ')}`);
+  return parts.join(' · ');
+}
+function saveSVG(view, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([view.toSVG()], { type: 'image/svg+xml' })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+function buildTurtle(q) {
+  const host = $(`[data-turtle="${q.id}"]`); if (!TURTLE || !host) return;
+  const f = q.turtle || { programs: [] }, st = S[q.id];
+  st.tp = { mode: 'shell', prog: 0, res: null, steps: [], pos: 0 };
+  host.classList.toggle('no-progs', !f.programs.length);
+  host.innerHTML = `
+    <div class="tp-grid">
+      <div class="tp-canvas"><svg class="tv" data-tp-canvas role="img" aria-label="The turtle's drawing"></svg>
+        <div class="tv-bar"><div class="seg tv-speed" role="group" aria-label="Speed"><button type="button" data-speed="1" aria-pressed="true">slow</button><button type="button" data-speed="3">quick</button><button type="button" data-speed="0">instant</button></div><button type="button" data-tp-save>Save picture</button></div></div>
+      <div class="tp-side">
+        ${f.programs.length ? `<div class="seg fl-progs" role="group" aria-label="Pick a program">${f.programs.map((p, i) => `<button type="button" data-prog="${i}" aria-pressed="false">${esc(p.label)}</button>`).join('')}</div>` : ''}
+        <div class="fl-code" data-tp-code hidden></div>
+        <div class="lp-ctl" data-tp-ctl hidden>
+          <button type="button" class="btn" data-tp="play">▶ Play</button>
+          <button type="button" class="btn ghost" data-tp="restart" title="Back to the start">↺</button>
+          <button type="button" class="btn ghost" data-tp="back" aria-label="Back one step">◀</button>
+          <button type="button" class="btn" data-tp="next">Next step ▶</button>
+          <button type="button" class="btn ghost" data-tp="end">To the end ⏭</button>
+        </div>
+        <div class="lp-status" data-tp-status aria-live="polite"></div>
+        <div class="fl-out" data-tp-out hidden><span class="label">prints</span><div class="lp-lines" data-tp-lines></div></div>
+      </div>
+    </div>`;
+  st.tv = new TurtleView($('[data-tp-canvas]', host));
+  if (q.drive) {
+    // arrow keys drive the turtle: click the picture first, then each key runs one line of Python
+    const pad = $('.tp-canvas', host);
+    pad.tabIndex = 0; pad.classList.add('drivable'); pad.setAttribute('aria-label', 'Click here, then drive with the arrow keys');
+    $('.tv-bar', pad).insertAdjacentHTML('afterbegin', '<span class="drive-hint">⌨ click the picture, then drive with the arrow keys</span>');
+    let busy = false;
+    pad.addEventListener('keydown', async e => {
+      const code = q.drive[e.key]; if (!code) return;
+      e.preventDefault(); if (busy) return;
+      busy = true; try { await shellRun(q, code, { history: false, quiet: true }); } finally { busy = false; }
+    });
+  }
+  $$('[data-speed]', host).forEach(b => b.addEventListener('click', () => { st.tv.speed = +b.dataset.speed; $$('[data-speed]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+  $('[data-tp-save]', host).onclick = () => saveSVG(st.tv, `${LESSON_ID}-${q.id}.svg`);
+  $$('[data-prog]', host).forEach(b => b.addEventListener('click', () => {
+    st.tp.prog = +b.dataset.prog; st.tp.mode = 'prog'; $$('[data-prog]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $('[data-tp-code]', host).hidden = false; $('[data-tp-ctl]', host).hidden = false;
+    loadTurtle(q);
+  }));
+  // before step 1 the canvas shows the setup (turtles placed, pen up moves) but nothing the program drew
+  const first = () => st.tp.steps.length ? st.tp.steps[0] : st.tp.res.cmds.length;
+  const go = pos => { st.tp.pos = Math.max(0, Math.min(st.tp.steps.length, pos)); st.tv.render(st.tp.res.cmds, st.tp.pos ? st.tp.steps[st.tp.pos - 1] + 1 : first()); paintTurtle(q); };
+  st.tp.first = first;
+  $$('[data-tp]', host).forEach(b => b.addEventListener('click', async () => {
+    const k = b.dataset.tp, n = st.tp.steps.length, r = st.tp.res; if (!r || r.error) return;
+    if (k === 'play') {
+      // animate from the current step to the end, lighting each line as it runs
+      const from = st.tp.pos ? st.tp.steps[st.tp.pos - 1] + 1 : first();
+      if (!st.tp.pos) st.tv.render(r.cmds, first());
+      st.tp.playing = true; paintTurtle(q);
+      const done = await st.tv.play(r.cmds.slice(from), i => { const at = from + i, s = st.tp.steps.indexOf(at); if (s >= 0) { st.tp.pos = s + 1; paintTurtle(q, true); } });
+      st.tp.playing = false; if (done) st.tp.pos = n; paintTurtle(q);
+      return;
+    }
+    st.tv.stop(); st.tp.playing = false;
+    go(k === 'restart' ? 0 : k === 'back' ? st.tp.pos - 1 : k === 'next' ? st.tp.pos + 1 : n);
+  }));
+}
+async function loadTurtle(q) {
+  const st = S[q.id], f = q.turtle; if (!f || !f.programs.length) return;
+  try { st.tp.res = await Py.call('draw', { src: f.programs[st.tp.prog].code, setup: q.setup }); }
+  catch (e) { st.tp.res = { error: failText(e), cmds: [], out: [] }; }
+  // a step = a command the program's own lines made (the setup's moves are shown, not stepped)
+  st.tp.steps = st.tp.res.cmds.map((c, i) => VISIBLE(c) && c.line != null ? i : -1).filter(i => i >= 0);
+  st.tp.pos = 0;
+  if (st.tp.mode === 'prog') st.tv.render(st.tp.res.cmds, st.tp.first());
+  paintTurtle(q);
+}
+function paintTurtle(q, light) {
+  const st = S[q.id], tp = st.tp, host = $(`[data-turtle="${q.id}"]`), r = tp.res; if (!host || !r) return;
+  const f = q.turtle, lines = f.programs[tp.prog].code.split('\n'), code = $('[data-tp-code]', host), status = $('[data-tp-status]', host);
+  if (tp.mode !== 'prog') { status.textContent = ''; return; }  // no program picked yet: the canvas is the prompt's
+  const n = tp.steps.length, pos = tp.pos, cur = pos ? r.cmds[tp.steps[pos - 1]] : null, lit = cur ? cur.line : null;
+  code.innerHTML = lines.map((l, k) => `<div class="fl-ln ${lit === k + 1 ? 'lit' : pos && pos < n ? 'dim' : ''}"><span class="fl-no">${k + 1}</span><code>${hl(l)}</code></div>`).join('');
+  if (light) { status.textContent = `playing… step ${pos} of ${n}: line ${lit}`; return; }
+  for (const k of ['back', 'restart']) $(`[data-tp="${k}"]`, host).disabled = pos === 0;
+  for (const k of ['next', 'end', 'play']) $(`[data-tp="${k}"]`, host).disabled = !!r.error || pos >= n || tp.playing;
+  const what = c => !c ? '' : c.type === 'move' ? (c.drawing ? `draws a line ${Math.round(Math.hypot(c.to[0] - c.from[0], c.to[1] - c.from[1]))} long` : `moves ${Math.round(Math.hypot(c.to[0] - c.from[0], c.to[1] - c.from[1]))} with the pen up`)
+    : c.type === 'rotate' ? `turns ${Math.round(Math.abs(c.to - c.from))}° to the ${c.to < c.from ? 'left' : 'right'}` : c.type === 'polygon' ? 'fills the shape' : c.type === 'write' ? `writes "${c.text}"` : c.type === 'clear' ? 'clears the drawing' : 'changes the background';
+  status.textContent = r.error ? `stopped: ${r.error.trim().split('\n').pop()}` : tp.playing ? `playing… step ${pos} of ${n}` : !pos ? `${n} step${n === 1 ? '' : 's'} to go. Press Play, or Next step to go one at a time.` : `step ${pos} of ${n}: line ${lit} ${what(cur)}${pos === n ? ' · finished' : ''}`;
+  const out = $('[data-tp-out]', host), ls = $('[data-tp-lines]', host);
+  out.hidden = !r.error && !r.out.length;
+  ls.innerHTML = (r.out || []).map(x => `<div class="s-out">${esc(x)}</div>`).join('') + (r.error ? `<div class="s-err">${esc(r.error)}</div>` : '');
+}
+/* The >>> prompt's result on a turtle page: draw what the line did. */
+function turtleShell(q, r) {
+  const st = S[q.id]; if (!TURTLE || !st.tv || !r || !r.turtle) return;
+  if (r.turtle_reset) { st.tv.clear(); st.tp.mode = 'shell'; $$('[data-prog]', $(`[data-turtle="${q.id}"]`)).forEach(x => x.setAttribute('aria-pressed', 'false')); const c = $(`[data-turtle="${q.id}"] [data-tp-code]`); if (c) { c.hidden = true; $(`[data-turtle="${q.id}"] [data-tp-ctl]`).hidden = true; $(`[data-turtle="${q.id}"] [data-tp-status]`).textContent = ''; } }
+  st.tp.mode = 'shell';
+  // the question's setup (no student line) appears at once; what the student typed is animated
+  const setup = r.turtle.filter(c => c.line == null), own = r.turtle.filter(c => c.line != null);
+  if (r.turtle_reset) { for (const c of setup) st.tv.apply(c); st.tv.play(own); }
+  else st.tv.play(r.turtle);
+}
+
 /* ---------- the >>> prompt under each picture ---------- */
 async function shellRun(q, code, opts = {}) {
   const st = S[q.id]; code = code.trim(); if (!code) return null;
   if (opts.history !== false) { st.hist.push(code); st.hp = st.hist.length; }
   let r;
-  try { r = await Py.call('shell', { qid: q.id, src: code, var: q.var, vars: q.vars, setup: q.setup }); }
+  const replay = TURTLE && st.tp && st.tp.mode === 'prog';  // the canvas shows a sample program: redraw the prompt's own picture
+  try { r = await Py.call('shell', { qid: q.id, src: code, var: q.var, vars: q.vars, setup: q.setup, replay }); }
   catch (e) { const entry = { code, lines: [['err', failText(e)]] }; logShell(q, entry); return entry; }
-  logShell(q, { code, lines: r.lines });
+  if (!opts.quiet || r.lines.length) logShell(q, { code, lines: r.lines });
   st.vals = r.state;
   renderPicture(q, r.hl);
+  turtleShell(q, r);
   return r;
 }
 /* The first few lines of a long output, then "… N more lines": for loops that print hundreds of times. */
@@ -712,20 +844,28 @@ function logShell(q, entry) {
   const outs = entry.lines.filter(l => l[0] === 'out');
   if (outs.length > 14) { const keep = new Set(foldLines(outs.map(l => l[1]), 10)); let k = 0; entry = { ...entry, lines: entry.lines.flatMap(l => l[0] !== 'out' ? [l] : k++ < 10 ? [l] : k === 11 ? [['note', `… ${outs.length - 10} more lines`]] : []) }; void keep; }
   const tip = l => l[0] === 'err' && /U\+201[89CD]/.test(l[1]) ? `<div class="s-note">Those are curly quotes from a word processor. Retype them as straight quotes ' or ".</div>` : '';
-  div.innerHTML = `<div class="s-in">&gt;&gt;&gt; <b>${hl(entry.code)}</b></div>` + entry.lines.map(l => `<div class="s-${l[0]}">${esc(l[1])}</div>${tip(l)}`).join('');
+  const prompt = entry.code ? entry.code.split('\n').map((l, i) => `<div class="s-in">${i ? '...' : '&gt;&gt;&gt;'} <b>${hl(l)}</b></div>`).join('') : '';
+  div.innerHTML = prompt + entry.lines.map(l => `<div class="s-${l[0]}">${esc(l[1])}</div>${tip(l)}`).join('');
   log.appendChild(div);
   while (log.children.length > 30) log.firstChild.remove();
   log.scrollTop = log.scrollHeight;
+  const pane = log.closest('.shell'); if (pane) pane.scrollTop = pane.scrollHeight;  // when the whole shell scrolls (playground, games)
 }
 async function resetPicture(q, silent) {
   const st = S[q.id];
   try {
     const r = await Py.call('shell', { qid: q.id, src: '', var: q.var, vars: q.vars, setup: q.setup, reset: true });
     st.vals = r.state;
+    turtleShell(q, r);
   } catch (e) { st.vals = initVals(q); }
   renderPicture(q, null);
   if (q.id === 'q1') updSlice();
-  if (!silent) logShell(q, { code: q.setup, lines: [['note', 'picture reset']] });
+  if (TURTLE && $(`[data-log="${q.id}"]`)) {
+    // a turtle page's prompt starts like a shell transcript: the setup lines, already typed
+    const log = $(`[data-log="${q.id}"]`); log.innerHTML = '';
+    q.setup.split('\n').filter(l => l.trim()).forEach(l => logShell(q, { code: l, lines: [] }));
+    if (!silent) logShell(q, { code: '', lines: [['note', 'picture reset']] });
+  } else if (!silent) logShell(q, { code: q.setup, lines: [['note', 'picture reset']] });
 }
 
 /* ---------- code editors (CodeMirror 6, vendor/codemirror.js) ---------- */
@@ -769,8 +909,9 @@ function labCompletions(q) {
     const dot = ctx.matchBefore(/[A-Za-z_]\w*\.\w*$/);
     if (dot) {
       const obj = dot.text.slice(0, dot.text.indexOf('.')), kind = kindOf(q, obj, q.setup + '\n' + doc);
-      const names = METHODS[kind] || [...new Set([...METHODS.list, ...METHODS.tuple])];
-      return { from: dot.from + obj.length + 1, options: names.map(n => ({ label: n, type: 'method', detail: kind || '', apply: n + '(' })), validFor: /^\w*$/ };
+      const pen = TURTLE && (obj === 'turtle' ? 'module' : new RegExp('^\\s*' + obj + '\\s*=\\s*turtle\\.(Pen|Turtle)\\(', 'm').test(q.setup + '\n' + doc) ? 'turtle' : null);
+      const names = pen === 'module' ? TURTLE_MODULE : pen ? TURTLE_METHODS : METHODS[kind] || [...new Set([...METHODS.list, ...METHODS.tuple])];
+      return { from: dot.from + obj.length + 1, options: names.map(n => ({ label: n, type: 'method', detail: pen || kind || '', apply: n + '(' })), validFor: /^\w*$/ };
     }
     const w = ctx.matchBefore(/[A-Za-z_]\w*/);
     if (!w && !ctx.explicit) return null;
@@ -822,15 +963,16 @@ function codeEditor(q, parent, initial, { onChange, onRun, label, placeholder })
   };
 }
 /* A one-line Python box (the >>> prompt and the assert checks). */
-function lineEditor(q, parent, { initial = '', placeholder = '', label = '', onEnter, onChange, history }) {
+function lineEditor(q, parent, { initial = '', placeholder = '', label = '', onEnter, onChange, history, multi = false }) {
   const keys = [
     { key: 'Enter', run: v => { if (CM.completionStatus(v.state) === 'active') return CM.acceptCompletion(v); onEnter(v); return true; } },
     { key: 'Tab', run: tabKey(null) },
   ];
   if (history) {
+    // the history keys only act on a one-line entry; inside a block the arrows move the cursor
     keys.push(
-      { key: 'ArrowUp', run: v => { if (CM.completionStatus(v.state) === 'active') return false; const s = history.up(); if (s == null) return false; setLine(v, s); return true; } },
-      { key: 'ArrowDown', run: v => { if (CM.completionStatus(v.state) === 'active') return false; setLine(v, history.down()); return true; } },
+      { key: 'ArrowUp', run: v => { if (CM.completionStatus(v.state) === 'active' || v.state.doc.lines > 1) return false; const s = history.up(); if (s == null) return false; setLine(v, s); return true; } },
+      { key: 'ArrowDown', run: v => { if (CM.completionStatus(v.state) === 'active' || v.state.doc.lines > 1) return false; setLine(v, history.down()); return true; } },
     );
   }
   const view = new CM.EditorView({
@@ -841,7 +983,9 @@ function lineEditor(q, parent, { initial = '', placeholder = '', label = '', onE
         CM.history(), CM.closeBrackets(), CM.bracketMatching(), CM.drawSelection(),
         CM.autocompletion({ activateOnTyping: true, icons: false }),
         CM.placeholder(placeholder), pythonFor(q), cmColours, cmTheme,
-        CM.EditorState.transactionFilter.of(tr => tr.newDoc.lines > 1 ? [] : tr),  // one line only
+        ...(multi
+          ? [CM.lineNumbers({ formatNumber: n => n === 1 ? '>>>' : '...' }), CM.indentUnit.of('    '), CM.EditorState.tabSize.of(4)]  // the prompts, like IDLE
+          : [CM.EditorState.transactionFilter.of(tr => tr.newDoc.lines > 1 ? [] : tr)]),  // one line only
         CM.Prec.highest(CM.keymap.of(keys)),
         CM.keymap.of([...CM.closeBracketsKeymap, ...CM.defaultKeymap, ...CM.historyKeymap]),
         CM.EditorView.updateListener.of(u => { if (u.docChanged && onChange) onChange(u.state.doc.toString()); }),
@@ -855,16 +999,22 @@ function setLine(view, s) { view.dispatch({ changes: { from: 0, to: view.state.d
 
 /* ---------- homework.py editor ---------- */
 function buildEditor(q) {
-  const host = $(`[data-editor="${q.id}"]`);
+  const host = $(`[data-editor="${q.id}"]`); if (!host) return;
   const ask = q.ask ? `<label class="ask" title="What you would type when input() asks. More than one answer? Separate them with commas."><span>input() answer</span><input data-ask value="${esc(store.get(q.id + ':ask') ?? q.ask)}" autocomplete="off" spellcheck="false" aria-label="Answer for input() when ${q.id.toUpperCase()} runs"></label>` : '';
   host.innerHTML = `<div class="editor">
-    <div class="ed-bar"><span class="file">homework.py · ${q.id.toUpperCase()}</span>${ask}
+    <div class="ed-bar"><span class="file">${q.file ? esc(q.file) : `homework.py · ${q.id.toUpperCase()}`}</span>${ask}
       <div class="ed-actions"><button type="button" class="run">Run ▶</button><button type="button" class="step" title="Run one line at a time">Step</button><button type="button" class="copy">Copy</button><button type="button" class="reset">Start over</button></div></div>
     <div class="ed-cm"></div>
+    ${TURTLE ? `<div class="tv-hw"><svg class="tv" data-hw-canvas role="img" aria-label="What homework.py draws"></svg><div class="tv-bar"><span class="label">Drawing</span><span class="tv-note" data-hw-note></span><button type="button" data-hw-replay>Replay</button><button type="button" data-hw-save>Save picture</button></div></div>` : ''}
     <div class="console"><div class="con-head"><span>Output</span><label><input type="checkbox" id="${q.id}-trace" checked> show each line</label></div><div class="con-body" aria-live="polite"></div></div>
   </div>`;
   const con = $('.console', host), body = $('.con-body', host), st = S[q.id];
   st.body = body;
+  if (TURTLE) {
+    st.hw = new TurtleView($('[data-hw-canvas]', host)); st.hwCmds = [];
+    $('[data-hw-replay]', host).onclick = () => { st.hw.clear(); st.hw.play(st.hwCmds); };
+    $('[data-hw-save]', host).onclick = () => saveSVG(st.hw, `${LESSON_ID}-${q.id}.svg`);
+  }
   st.ta = codeEditor(q, $('.ed-cm', host), store.get(q.id + ':code') ?? q.starter, {
     onChange: () => { store.set(q.id + ':code', st.ta.value); st.stepping = false; },
     onRun: () => runAll(q),
@@ -923,6 +1073,7 @@ async function runAll(q) {
   }
   st.body.innerHTML = h; st.body.scrollTop = 0;
   grade(q, r);
+  if (TURTLE) { st.hwCmds = r.turtle || []; st.hw.clear(); st.hw.play(st.hwCmds); $(`[data-editor="${q.id}"] [data-hw-note]`).textContent = turtleNote(r.turtle); }
   // syncPicture: after a run, the picture shows the variables as the script left them.
   const names = q.syncPicture && r.finals ? q.vars.filter(v => r.finals[v] && BRK[r.finals[v].t]) : [];
   if (names.length) {
@@ -938,6 +1089,10 @@ async function stepOne(q) {
   try { r = await Py.call('step', { qid: q.id, src: st.ta.value, var: q.var, vars: q.vars, restart, inputs: q.ask ? askValues(q) : null }); }
   catch (e) { st.body.innerHTML = `<div class="c-err">${esc(failText(e))}</div>`; st.stepping = false; return; }
   if (r.syntax) { st.body.innerHTML = errHTML(r.syntax); st.stepping = false; return; }
+  if (TURTLE) {
+    if (restart) { st.hw.clear(); st.hwCmds = []; if (st.tp) st.tp.mode = 'prog'; }  // Step draws on the live screen, so the prompt's picture is reset too
+    if (r.entry && r.entry.turtle) { st.hwCmds.push(...r.entry.turtle); st.hw.play(r.entry.turtle); }
+  }
   if (r.entry) st.stepHTML += entryHTML(q, r.entry);
   let tail;
   if (r.errored) tail = '<div class="c-note">stopped at the error. Press Step to start again.</div>';
@@ -975,6 +1130,8 @@ function gradeCore(q, res, raw) {
     ifs: res.probe || [],
     // each top-level for/while as the script ran it: {line, kind, out: [printed lines], iter, target, test, depth (2 = a loop inside it)}
     loops: (res.entries || []).filter(e => e.kind === 'for' || e.kind === 'while'),
+    // turtle pages: what the script drew, in turtle coordinates: segs [{x1,y1,x2,y2,len,color,width,line}], turns [{deg,line}], fills, writes, colors
+    ...(TURTLE ? turtleCtx(res.turtle) : {}),
     // the student's own comments under starter heading "# n." (all their comments if that heading is gone)
     notes: n => {
       const lines = raw.split('\n'), head = new RegExp('^\\s*#\\s*' + n + '\\.'), anyHead = /^\s*#\s*\d+\./;
@@ -994,7 +1151,8 @@ function gradeCore(q, res, raw) {
     const spans = ns.filter(n => n in heads).map(n => [heads[n], order.find(h => h > heads[n]) || Infinity]);
     return spans.length ? list.filter(b => spans.some(([a, z]) => b.line > a && b.line < z)) : list;
   };
-  return q.tasks.map((t, k) => { try { const ns = t.under || [k + 1]; return !!t.check({ ...ctx, ifs: under(ctx.ifs, ns), loops: under(ctx.loops, ns) }); } catch (e) { return false; } });
+  const scoped = (c, ns) => TURTLE ? { ...c, segs: under(c.segs, ns), turns: under(c.turns, ns), fills: under(c.fills, ns), writes: under(c.writes, ns) } : c;
+  return q.tasks.map((t, k) => { try { const ns = t.under || [k + 1]; return !!t.check(scoped({ ...ctx, ifs: under(ctx.ifs, ns), loops: under(ctx.loops, ns) }, ns)); } catch (e) { return false; } });
 }
 function grade(q, res) {
   const d = gradeCore(q, res, S[q.id].ta.value);
@@ -1005,6 +1163,11 @@ function grade(q, res) {
 /* ---------- assert practice cells ---------- */
 function cellHTML(q, t, k) {
   const c = t.cell, id = `${q.id}-c${k}`;
+  if (c.draw) return `<div class="pc pc-draw" data-pc="${k}">
+    <span class="pc-label h-c">${esc(c.label)}</span>
+    <div class="pc-draw-row"><div class="pc-prog" data-prog></div><svg class="tv tv-mini" data-pc-canvas role="img" aria-label="What your code for task ${k + 1} draws"></svg></div>
+    <div class="pc-line"><button type="button" class="pc-btn" data-check>Check</button><button type="button" class="pc-btn" data-addscript>Add to homework.py</button></div>
+    <div class="pc-res" data-res></div></div>`;
   if (c.prog) return `<div class="pc" data-pc="${k}">
     <span class="pc-label h-c">${esc(c.label)}</span>
     <div class="pc-prog" data-prog></div>
@@ -1034,6 +1197,7 @@ function cellSpecs(q) {
   return q.tasks.map((t, k) => {
     const c = t.cell; if (!c || c.why) return { kind: null };
     const input = (st.inputs[k] || '').trim();
+    if (c.draw) return { kind: 'draw', input: cellText(q, k), setup: c.setup || q.setup };
     if (c.prog) {
       const vals = c.values || q.probe.values;
       // a page without a probe can still use a code box: it runs once (values: ['']) and the variable is unused
@@ -1056,6 +1220,17 @@ function composeCell(q, t, k, r) {
   if (!r) return null;
   const P = (r.printed || []).map(p => ['out', p]);
   if (r.state === 'empty') return { state: 'empty', lines: [] };
+  if (c.draw) {
+    // a drawing check: the lesson's c.draw(ctx, input) says true (pass), false, or a hint string
+    const trap = (c.traps || []).find(([re]) => re.test(input));
+    const notes = trap ? [['note', trap[1]]] : [];
+    if (r.error) return { state: 'fail', lines: [...P, ['err', `✗ Your code stops with an error:`], ['err', r.error], ...notes] };
+    let v;
+    try { v = c.draw(turtleCtx(r.cmds), input, r.printed || []); } catch (e) { v = false; }
+    if (v === true && c.must && !c.must[0].test(input)) return { state: 'fail', lines: [...P, ['ok', 'That draws it…'], ['note', c.must[1]]] };
+    if (v === true) return { state: 'pass', lines: [...P, ['ok', c.okMsg || '✓ passed']] };
+    return { state: 'fail', lines: [...P, ['err', typeof v === 'string' ? '✗ ' + v : '✗ Not yet. Look at the drawing and read the task again.'], ...notes] };
+  }
   if (r.state === 'blocked') return { state: 'blocked', lines: r.has_input ? [['note', `Finish task ${r.blocked_by + 1} first. This list depends on it.`]] : [] };
   if (r.state === 'skip') return { state: 'fail', lines: [['note', `Use ${q.vars.length > 1 ? 'one of the variables (' + q.vars.join(', ') + ')' : q.var} to get there. Typing the answer in directly doesn't count.`]] };
   if (c.prog) {
@@ -1099,6 +1274,8 @@ async function checkCells(q) {
   q.tasks.forEach((t, k) => {
     const r = st.cells[k], el = $(`#${q.id} [data-pc="${k}"] [data-res]`); if (!el) return;
     el.innerHTML = r ? r.lines.map(([cls, txt]) => `<div class="s-${cls}">${esc(txt)}</div>`).join('') : '';
+    const v = st.cellViews && st.cellViews[k];
+    if (v) { v.clear(); if (res[k] && res[k].cmds) v.play(res[k].cmds); }
   });
   paintTasks(q); paintScores();
 }
@@ -1118,7 +1295,7 @@ function addToScript(q, k) {
   ta.dispatchEvent(new Event('input'));
 }
 function buildTasks(q) {
-  const st = S[q.id], ol = $(`[data-tasks="${q.id}"]`);
+  const st = S[q.id], ol = $(`[data-tasks="${q.id}"]`); if (!ol) return;
   try { st.inputs = JSON.parse(store.get(q.id + ':cells') || '{}') || {}; } catch (e) { st.inputs = {}; }
   ol.innerHTML = q.tasks.map((t, k) => `<li class="task" data-t="${k}"><span class="tick" aria-hidden="true"></span><div class="task-main">
     <div class="t-text">${t.text} <span class="pts">${t.pts} pts</span></div>
@@ -1133,6 +1310,8 @@ function buildTasks(q) {
     if (host) lineEditor(q, host, { initial: st.inputs[k] || '', placeholder: host.dataset.ph, label: host.dataset.label, onChange: save, onEnter: () => checkCells(q) });
     if (prog) {
       const c = t.cell, ed = codeEditor(q, prog, cellText(q, k), { label: `Your code for task ${k + 1}`, placeholder: c.ph, onRun: () => checkCells(q), onChange: () => save(ed.value) });
+      const cv = $('[data-pc-canvas]', pc);
+      if (cv) { st.cellViews = st.cellViews || {}; st.cellViews[k] = new TurtleView(cv); st.cellViews[k].speed = 3; }
       // a task that builds on an earlier one starts from that box's code
       if (c.from != null) prog.addEventListener('focusin', () => { if (!ed.value.trim() && (st.inputs[c.from] || '').trim()) ed.value = st.inputs[c.from]; });
     }
@@ -1179,9 +1358,10 @@ function paintScores() {
     const t = tally(q);
     if (q.bonus) bonus = t.got; else { got += t.got; max += t.max; }
     const el = $(`[data-pts="${q.id}"]`);
-    el.textContent = `${t.got} / ${t.max} pts · ${t.checks}/${t.cells} checks`; el.classList.toggle('full', t.got === t.max);
+    if (el) { el.textContent = `${t.got} / ${t.max} pts · ${t.checks}/${t.cells} checks`; el.classList.toggle('full', t.got === t.max); }
     return `<a class="chip" href="#${q.id}">${q.id.toUpperCase()} ${q.title}${q.bonus ? ' (bonus)' : ''} · ${t.got}/${t.max}</a>`;
   });
+  if (!$('#scoreboard')) return;
   $('#scoreboard').innerHTML = `<span class="chip total">Score ${got} / ${max}${bonus ? ` + ${bonus} bonus` : ''}</span>` + chips.join('') + '<a class="chip" href="#handin">Hand in →</a>'
     + '<button type="button" class="chip chip-btn" id="reset-all" title="Forget everything saved for this homework in this browser and start fresh">Start over</button>';
 }
@@ -1222,6 +1402,7 @@ async function buildReport() {
   const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let got = 0, max = 0, bonus = 0, bonusMax = 0; const sum = [], blocks = [];
   for (const q of QS) {
+    if (!S[q.id].ta) continue;
     const src = S[q.id].ta.value.replace(/\r\n?/g, '\n');
     let res;
     try { res = await Py.call('run', runArgs(q, src)); }
@@ -1241,6 +1422,7 @@ async function buildReport() {
     let outTxt = res.syntax ? comment(res.syntax) : (res.outputs.map(comment).join('\n') || '# (nothing printed)');
     const err = res.entries && res.entries.find(e => e.error);
     if (err) outTxt += '\n' + comment(err.error);
+    if (TURTLE) outTxt += '\n# ' + turtleNote(res.turtle);
     const asked = q.ask ? `, input() answer: ${askValues(q).join(', ') || '(none)'}` : '';
     blocks.push(`# ===== ${q.id.toUpperCase()}: ${q.title} =====\n\n${src.trim()}\n\n# --- what this printed (Python ${S.version || '3'}${asked}) ---\n${outTxt}`);
   }
@@ -1297,14 +1479,14 @@ function setStatus(state, detail) {
 Py.on((state, d) => {
   if (state === 'ready') {
     S.version = d.version; setStatus('ready', d.version);
-    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); if (q.fn) runFn(q); if (q.fs) runFs(q); });
+    QS.forEach(q => { resetPicture(q, !d.restarted); checkCells(q); if (q.flow) { loadFlow(q); loadTester(q); } if (q.loop) { loadLoop(q); loadSeq(q); } if (q.fmt) loadFmt(q); if (q.fn) runFn(q); if (q.fs) runFs(q); if (q.turtle) loadTurtle(q); });
   } else setStatus(state, d);
 });
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
   S[q.id].never = new Set(Object.entries(S[q.id].vals).filter(([, v]) => v.never).map(([k]) => k));
-  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q); buildFn(q); buildFs(q);
+  renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q); buildFmt(q); buildFn(q); buildFs(q); buildTurtle(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
     row.addEventListener('click', e => {
@@ -1317,9 +1499,22 @@ QS.forEach(q => {
     });
   });
   const sh = $(`[data-shell="${q.id}"]`), st = S[q.id];
-  lineEditor(q, sh, {
-    placeholder: sh.dataset.ph, label: sh.dataset.label,
-    onEnter: v => { const code = v.state.doc.toString(); setLine(v, ''); shellRun(q, code); },
+  if (sh) lineEditor(q, sh, {
+    placeholder: sh.dataset.ph, label: sh.dataset.label, multi: true,
+    onEnter: async v => {
+      // Like IDLE's shell: a block header or an open bracket asks for more lines (shown as ...),
+      // an empty line ends a block and runs it, a plain line runs at once.
+      const code = v.state.doc.toString(), lines = code.split('\n'), last = lines[lines.length - 1];
+      if (!code.trim()) { setLine(v, ''); return; }
+      let more = lines.length > 1 ? last.trim() !== '' : false;
+      if (lines.length === 1) { try { more = (await Py.call('incomplete', { src: code })).incomplete; } catch (e) { more = false; } }
+      if (more) {
+        const indent = (/^\s*/.exec(last) || [''])[0] + (/:\s*(#.*)?$/.test(stripComment(last)) ? '    ' : '');
+        v.dispatch({ changes: { from: v.state.doc.length, insert: '\n' + indent }, selection: { anchor: v.state.doc.length + 1 + indent.length } });
+        return;
+      }
+      setLine(v, ''); shellRun(q, code.replace(/\n+$/, ''));
+    },
     history: {
       up: () => st.hp > 0 ? st.hist[--st.hp] : null,
       down: () => { st.hp = Math.min(st.hist.length, st.hp + 1); return st.hist[st.hp] || ''; },
@@ -1336,6 +1531,7 @@ updSlice();
 paintScores();
 
 const nameEl = $('#student-name');
+if (nameEl) {
 nameEl.value = store.get('name') || '';
 nameEl.addEventListener('input', () => store.set('name', nameEl.value));
 $('#preview-report').addEventListener('toggle', e => { if (e.target.open) refreshPreview(); });
@@ -1361,5 +1557,6 @@ $('#dl-report').addEventListener('click', async () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   reportMsg('Downloaded. Attach the file to your assignment in Google Classroom.');
 });
+}
 
 Py.start();

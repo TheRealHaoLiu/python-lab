@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Turtle 1 · First Steps</title>
+<meta name="description" content="First Python with the turtle: forward, left, right, variables, and / versus //. Draw with real Python in the browser.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/lab.css?v=__BUILD__">
+<link rel="stylesheet" href="../turtle.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../../">Python Lab</a> · <a href="../">Turtle</a> · Lesson 1</div>
+    <h1><span class="tu">First steps</span> with the turtle</h1>
+    <p class="lede">Two lines of Python give you a turtle: <code>import turtle</code> and <code>t = turtle.Pen()</code>. It sits in the middle of the screen, facing right, pen on the paper. Every command you type, it does at once.</p>
+    <div class="idea">
+      <div class="kind-card is-turtle">
+        <h3><span class="glyph">t.</span> Telling the turtle what to do</h3>
+        <div class="demo pre">t.forward(100)
+t.left(90)</div>
+        <ul>
+          <li><code>t.forward(100)</code> walks 100 steps and draws a line. <code>t.backward(50)</code> walks back.</li>
+          <li><code>t.left(90)</code> and <code>t.right(90)</code> turn on the spot. 90 is a square corner; 360 is all the way round.</li>
+          <li><code>t.penup()</code> lifts the pen so the turtle walks without drawing; <code>t.pendown()</code> puts it back.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-turtle">
+        <h3><span class="glyph">=</span> Variables are labels</h3>
+        <div class="demo pre">side = 100
+t.forward(side)</div>
+        <ul>
+          <li>A variable is a name stuck on a value. Change <code>side</code> once at the top and every <code>t.forward(side)</code> changes.</li>
+          <li><code>100 / 3</code> is 33.333…, a decimal. <code>100 // 3</code> is 33, a whole number.</li>
+          <li><code>side * side</code> is the square's area; <code>print(area)</code> shows it under the drawing.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Press the buttons under the picture, or type at the <code>&gt;&gt;&gt;</code> prompt, and watch the turtle.</li>
+      <li><b>2</b> Pick a program and press <em>Play</em>, or <em>Next step</em> to see one line at a time.</li>
+      <li><b>3</b> Try each task in its check box until you get ✓, then write it in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="turtle">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Meet the Turtle</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">The turtle <code>t</code> is waiting in the middle. Make it walk, turn, and draw a square. Then see what happens when you spell a command wrong.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">t = turtle.Pen()</span></div>
+      <div class="tpic" data-turtle="q1"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="t.forward(100)">t.forward(100)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.left(90)">t.left(90)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.right(90)">t.right(90)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.backward(50)">t.backward(50)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.penup()">t.penup()</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.pendown()">t.pendown()</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">Press <code>t.forward(100)</code>, then <code>t.left(90)</code>, and keep going: four of each make a square. Then type something of your own, like <code>t.circle(50)</code> or <code>t.color('blue')</code>.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: t.circle(50)" data-label="Python shell for the turtle t"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="turtle">
+    <div class="q-head"><span class="q-num">Q2</span><h2>Variables Are Labels</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">A variable called <code>side</code> holds a number. Draw the square with <code>t.forward(side)</code> instead of <code>t.forward(100)</code>, and one change at the top changes the whole square.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">side = 100</span></div>
+      <div class="tpic" data-turtle="q2"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="t.forward(side)">t.forward(side)</button>
+        <button type="button" class="btn" data-run="q2" data-code="t.left(90)">t.left(90)</button>
+        <button type="button" class="btn" data-run="q2" data-code="side = 50">side = 50</button>
+        <button type="button" class="btn" data-run="q2" data-code="side">side</button>
+        <button type="button" class="btn" data-run="q2" data-code="side * side">side * side</button>
+        <button type="button" class="btn" data-run="q2" data-code="100 / 3">100 / 3</button>
+        <button type="button" class="btn" data-run="q2" data-code="100 // 3">100 // 3</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">Press <code>t.forward(side)</code>, then <code>side = 50</code>, then <code>t.forward(side)</code> again: same command, different line, because the label now points at 50.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: side = 200" data-label="Python shell for side"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your scripts and what they printed and drew. It re-runs your scripts first, so you get the latest results. <em>Save picture</em> under a drawing gives you an image file too.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>This covers lectures 1 and 2 (the shell, variables, numbers, <code>/</code> and <code>//</code>) with the turtle: every statement draws, so “what did that line do?” has a visible answer. The scripts are ordinary <code>import turtle</code> programs and run unchanged in IDLE on the students' own computers (Python for Kids, chapter 4, is the turtle chapter).</p>
+    <ul>
+      <li><strong>Real Python, in the browser.</strong> Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide), with a turtle module that draws to the page instead of a window. Nothing is installed and nothing is sent to a server.</li>
+      <li><strong>How drawings are graded.</strong> The page looks at what the script actually drew under each task's heading: how many lines, how long, which way it turned. Q2 task 1 also checks that the square is drawn with the variable (<code>t.forward(side)</code>) and not the number.</li>
+      <li>Each task has two checks: the <strong>practice check</strong> box under the task (Check draws the code in the little picture and says what is off), and the graded <strong>homework.py</strong> check.</li>
+      <li>Written answers (Q1 task 4, Q2 task 3) are graded by you; the page only checks that the key idea is there (an error for a misspelt command; a decimal versus a whole number).</li>
+      <li>The bonus uses <code>input()</code>. A web page can't pause Python for typing, so the <em>input() answer</em> box next to Run holds what the user would type (80 by default).</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../../js/config.js?v=__BUILD__"></script>
+<script src="../../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="../turtle-view.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../../js/app.js?v=__BUILD__"></script>
+</body>
+</html>

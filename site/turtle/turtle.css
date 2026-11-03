@@ -1,0 +1,125 @@
+/* Turtle pages: the drawing canvas and its controls (loaded after css/lab.css). */
+:root{--turtle:#1f8a5b;--turtle-soft:#dff3e8}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--turtle:#4ccf8f;--turtle-soft:#123526} }
+:root[data-theme="dark"]{--turtle:#4ccf8f;--turtle-soft:#123526}
+.hero h1 .tu{color:var(--turtle)}
+.q[data-kind="turtle"]{--kind:var(--turtle);--kind-soft:var(--turtle-soft)}
+.kind-card.is-turtle{--kind:var(--turtle);--kind-soft:var(--turtle-soft)}
+.hw-num.tu{background:var(--turtle)} .hw:hover.tu{border-color:var(--turtle)} .hw-go.tu{color:var(--turtle)}
+
+.tv{display:block;width:100%;aspect-ratio:4/3;background:#fff;border:1.5px solid var(--line);border-radius:12px}
+.tv text{font-family:var(--f-body)}
+.tv-bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding-top:8px}
+.tv-bar button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 11px;cursor:pointer;font:600 12px var(--f-code)}
+.tv-bar button:hover{border-color:var(--kind)}
+.tv-bar .label{margin-right:auto}
+.tv-note{font:13px var(--f-code);color:var(--muted);flex:1 1 100%}
+.tv-speed{margin-right:auto}
+
+/* the picture bench: canvas on the left, program + stepper on the right */
+.tpic{display:grid;gap:12px;min-width:0}
+.tp-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media (min-width:820px){.tp-grid{grid-template-columns:minmax(0,7fr) minmax(0,6fr)}}
+.tp-canvas,.tp-side{min-width:0;display:grid;gap:8px;align-content:start}
+.tp-side .fl-code[hidden],.tp-side .lp-ctl[hidden],.tp-side .fl-out[hidden]{display:none}
+.tp-side .lp-status{margin-left:0;min-height:1.4em}
+
+/* homework.py: the drawing sits between the code and the output */
+.tv-hw{padding:10px 12px;border-top:1px solid var(--code-line);background:var(--code-bg)}
+.tv-hw .tv{border-color:var(--code-line);max-height:360px}
+.tv-hw .tv-bar .label{color:var(--code-dim)}
+.tv-hw .tv-bar button{border-color:var(--code-line);background:transparent;color:var(--code-ink)}
+.tv-hw .tv-bar button:hover{border-color:var(--code-dim)}
+.tv-hw .tv-note{color:var(--code-dim)}
+
+/* practice check with a little canvas next to the code box */
+.pc-draw-row{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}
+@media (min-width:560px){.pc-draw-row{grid-template-columns:minmax(0,1fr) 180px;align-items:start}}
+.tv-mini{border-color:var(--code-line);border-radius:8px}
+
+/* ---------- the playground page: tabs and the reference ---------- */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);padding-bottom:0;position:sticky;top:0;z-index:5;background:var(--paper);padding-top:12px}
+.tabbar button{border:0;background:none;cursor:pointer;font:600 15px var(--f-display);color:var(--muted);padding:10px 16px;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabbar button:hover{color:var(--ink)}
+.tabbar button[aria-selected="true"]{color:var(--turtle);border-bottom-color:var(--turtle)}
+[data-panel][hidden]{display:none}
+[data-panel]{display:grid;gap:40px}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px}
+.ov-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:8px;align-content:start}
+.ov-card h3{font-size:20px;display:flex;gap:10px;align-items:baseline}
+.ov-card .glyph{font:600 24px var(--f-code);color:var(--turtle)}
+.ov-card p{margin:0;color:var(--muted);font-size:15px}
+.ov-card .demo{font:13px var(--f-code);background:var(--turtle-soft);border-radius:8px;padding:8px 10px;white-space:pre;overflow-x:auto}
+.ov-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;counter-reset:s}
+.ov-step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;counter-increment:s;display:grid;gap:6px}
+.ov-step::before{content:counter(s);font:600 13px var(--f-code);background:var(--turtle);color:#fff;border-radius:50%;width:24px;height:24px;display:grid;place-items:center}
+.ov-step b{font:600 17px var(--f-display)}
+.ov-step span{color:var(--muted);font-size:14px}
+.ov-cta{display:flex;flex-wrap:wrap;gap:10px}
+.ov-cta a{text-decoration:none}
+.ref-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+@media (min-width:960px){.ref-layout{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}.ref-pin{position:sticky;top:62px}}
+.ref-pin .tpic .fl-progs{display:none}
+.ref-list{display:grid;gap:12px;min-width:0}
+.ref-group{font-size:22px;margin-top:14px;color:var(--turtle)}
+.ref-group:first-child{margin-top:0}
+.ref-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px;min-width:0}
+.ref-card.on{border-color:var(--turtle);box-shadow:0 0 0 2px var(--turtle-soft)}
+.ref-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
+.ref-sig{font:600 15px var(--f-code);color:var(--ink);background:var(--turtle-soft);padding:2px 8px;border-radius:6px}
+.ref-alias{font:12px var(--f-code);color:var(--muted)}
+.ref-try{margin-left:auto}
+.ref-desc{margin:0;font-size:15px}
+.ref-code{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:8px 10px;font:13px/1.5 var(--f-code);overflow-x:auto}
+.ref-toc{display:flex;flex-wrap:wrap;gap:6px}
+.ref-toc a{font:600 12px var(--f-code);border:1px solid var(--line);border-radius:999px;padding:4px 10px;text-decoration:none;color:var(--ink);background:var(--card)}
+.ref-toc a:hover{border-color:var(--turtle)}
+.ref-note ul{margin:0;padding-left:20px;display:grid;gap:4px;font-size:14px;color:var(--muted)}
+.ref-note code{background:var(--turtle-soft);color:var(--ink);padding:1px 5px;border-radius:5px}
+[data-panel="overview"]{--kind:var(--turtle);--kind-soft:var(--turtle-soft)}
+.ref-pin .tp-grid{grid-template-columns:minmax(0,1fr)}  /* the reference example: picture on top, code under it */
+
+/* arrow-key driving (games) */
+.tp-canvas.drivable{border-radius:12px;outline-offset:3px}
+.tp-canvas.drivable .tv{cursor:crosshair}
+.drive-hint{font:600 12px var(--f-code);background:var(--line);color:var(--ink);border-radius:999px;padding:4px 10px;flex:1 1 100%;text-align:center}
+.tp-canvas.drivable:focus-within .drive-hint{background:var(--turtle);color:#fff}
+/* a picture without sample programs (games, playground): the board takes the whole width */
+.tpic.no-progs .tp-grid{grid-template-columns:minmax(0,1fr)}
+.tpic.no-progs .tp-side{display:none}
+.gm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.gm-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;text-decoration:none;color:var(--ink)}
+.gm-card:hover{border-color:var(--turtle)}
+.gm-card b{font:600 17px var(--f-display)}
+.gm-card span{color:var(--muted);font-size:14px}
+
+/* playground: prompt or script, one at a time; the script view puts the drawing beside the code */
+.pg-mode{margin-left:auto}
+.pg-mode button[aria-pressed="true"]{background:var(--turtle);color:#fff}
+[data-pg][hidden]{display:none}
+[data-pg]{display:grid;gap:18px}
+.pg-script{grid-template-columns:minmax(0,1fr)}
+@media (min-width:960px){
+  .pg-script .editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  .pg-script .ed-bar{grid-column:1 / -1}
+  .pg-script .ed-cm{grid-column:1;grid-row:2;min-height:420px}
+  .pg-script .ed-cm .cm-editor,.pg-script .ed-cm .cm-content,.pg-script .ed-cm .cm-gutter{min-height:420px}
+  .pg-script .tv-hw{grid-column:2;grid-row:2 / 4;border-top:0;border-left:1px solid var(--code-line);display:grid;align-content:start}
+  .pg-script .tv-hw .tv{max-height:none}
+  .pg-script .console{grid-column:1;grid-row:3}
+}
+/* the sticky tab bar must not cover a section that was scrolled to */
+[data-panel] .q,[data-panel] .ref-group{scroll-margin-top:64px}
+/* playground prompt view: picture on the left, the shell beside it (like IDLE's window next to the shell) */
+@media (min-width:960px){
+  [data-pg="repl"] .bench,[data-panel="games"] .bench{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto auto auto;align-items:start}
+  [data-pg="repl"] .bench-top,[data-panel="games"] .bench-top{grid-column:1 / -1}
+  [data-pg="repl"] .tpic,[data-panel="games"] .tpic{grid-column:1;grid-row:2}
+  [data-pg="repl"] .controls,[data-panel="games"] .controls{grid-column:1;grid-row:3}
+  [data-panel="games"] .bench > .tip{grid-column:1;grid-row:4}
+  /* the shell is one scrolling pane: the >>> line follows the last output, like a real REPL */
+  [data-pg="repl"] .shell,[data-panel="games"] .shell{grid-column:2;grid-row:2 / 5;align-self:stretch;min-height:0;overflow:auto}
+  [data-pg="repl"] .shell-log,[data-panel="games"] .shell-log{max-height:none;overflow:visible}
+}
+/* the playground uses the whole window width */
+body.wide .wrap{max-width:none;padding-inline:8px}

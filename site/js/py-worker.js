@@ -10,6 +10,18 @@ const ready = (async () => {
   const py = await loadPyodide({ indexURL: PYODIDE });
   const src = await (await fetch(self.LAB_BOOT.labkit)).text();
   py.runPython(src);
+  // Turtle pages: write the vendored basthon-turtle package into Python's file system
+  // and let labkit register the tiny transport module it draws through (see turtle/).
+  if (self.LAB_BOOT.turtle) {
+    const T = self.LAB_BOOT.turtle;  // files: {path under /lab: url}
+    await Promise.all(Object.entries(T.files).map(async ([name, url]) => {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`could not load ${name} for turtle (${r.status})`);
+      py.FS.mkdirTree('/lab/' + name.split('/').slice(0, -1).join('/'));
+      py.FS.writeFile('/lab/' + name, await r.text());
+    }));
+    py.globals.get('turtle_boot')('/lab');
+  }
   dispatch = py.globals.get('dispatch');
   postMessage({ type: 'ready', version: py.runPython('import sys; sys.version.split()[0]') });
 })().catch(err => { postMessage({ type: 'fatal', error: String(err && err.message || err) }); throw err; });

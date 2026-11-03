@@ -305,8 +305,12 @@ pre.report{background:var(--code-bg);color:var(--code-ink);border-radius:10px;pa
 .ed-cm .cm-editor{min-height:300px}
 .ed-cm .cm-content,.ed-cm .cm-gutter{min-height:300px}
 .shell-in{display:flex;align-items:center;gap:8px;padding:4px 14px 6px}
+.shell-in > span{display:none}  /* the >>> is drawn by the editor's own gutter, so a block can show ... too */
 .shell-cm{flex:1;min-width:0}
 .shell-cm .cm-content{padding:4px 0}
+.shell-cm .cm-gutters{background:transparent;color:var(--code-ok);font-family:var(--f-code)}
+.shell-cm .cm-lineNumbers .cm-gutterElement{padding:0 8px 0 0;min-width:0;text-align:left}
+.shell-cm .cm-activeLineGutter{color:var(--code-ok)}
 .pc-in{flex:1 1 14ch;min-width:10ch;background:var(--code-field);border-bottom:2px solid var(--code-dim);border-radius:5px 5px 0 0;padding:0 6px}
 .pc-in:focus-within{border-bottom-color:var(--code-ok)}
 .pc-in .cm-content{padding:3px 0}

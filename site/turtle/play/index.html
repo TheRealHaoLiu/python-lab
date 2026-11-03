@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Turtle Playground</title>
+<meta name="description" content="Python's turtle in the browser: an overview, a demo gallery to play and step through, a playground, and a reference of every turtle command with a runnable example.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/lab.css?v=__BUILD__">
+<link rel="stylesheet" href="../turtle.css?v=__BUILD__">
+</head>
+<body class="wide">
+<div class="wrap">
+  <header class="hero" style="gap:14px">
+    <div class="eyebrow"><a href="../../">Python Lab</a> · <a href="../">Turtle</a> · Playground</div>
+    <h1>Turtle <span class="tu">playground</span></h1>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+  </header>
+  <nav class="tabbar" data-tabs role="tablist" aria-label="Sections">
+    <button type="button" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button type="button" role="tab" data-tab="demo" aria-selected="false">Demo</button>
+    <button type="button" role="tab" data-tab="games" aria-selected="false">Games</button>
+    <button type="button" role="tab" data-tab="playground" aria-selected="false">Playground</button>
+    <button type="button" role="tab" data-tab="reference" aria-selected="false">Reference</button>
+  </nav>
+
+  <!-- ===== Overview ===== -->
+  <div data-panel="overview">
+    <section class="hero" style="padding-top:0">
+      <p class="lede">Python's turtle, running in the browser. A turtle starts in the middle of the screen; <code>t.forward(100)</code> walks it 100 steps and draws a line, <code>t.left(90)</code> turns it. Loops make shapes, lists make colours, and a mistake is something you can see. Every script here is ordinary Python and runs unchanged in IDLE.</p>
+      <div class="ov-cta">
+        <a class="btn big" href="#demo" data-goto="demo">See the demo →</a>
+        <a class="btn big ghost" href="#games" data-goto="games">Play the games</a>
+        <a class="btn big ghost" href="#playground" data-goto="playground">Open the playground</a>
+        <a class="btn big ghost" href="#reference" data-goto="reference">Read the reference</a>
+      </div>
+    </section>
+    <section>
+      <div class="ov-grid">
+        <div class="ov-card"><h3><span class="glyph">▶</span>Play and step</h3><p>Pick a program and watch it draw, or press <em>Next step</em> to run one command at a time with the line that made it lit up. Slow, quick or instant.</p><div class="demo">for i in range(4):
+    t.forward(100)   ← lit while it draws
+    t.left(90)</div></div>
+        <div class="ov-card"><h3><span class="glyph">&gt;&gt;&gt;</span>A live prompt</h3><p>Type one line and the turtle does it at once. Buttons under the picture do the common ones. Type <code>t.</code> and press Tab to see everything a turtle can do.</p><div class="demo">&gt;&gt;&gt; t.circle(50)
+&gt;&gt;&gt; t.color('red')
+&gt;&gt;&gt; t.write('hi')</div></div>
+        <div class="ov-card"><h3><span class="glyph">py</span>An editor</h3><p>Write a whole script with syntax colouring and Tab completion. <em>Run</em> draws it, <em>Step</em> runs one line at a time, <em>Replay</em> plays the drawing again, <em>Save picture</em> downloads an SVG.</p></div>
+        <div class="ov-card"><h3><span class="glyph">✓</span>Checks that read the drawing</h3><p>A task's check looks at what the code drew: how many lines, how long, which way it turned, whether the turtle came home. A miss gets a hint about the picture, never the answer.</p><div class="demo">✗ That draws 3 lines. A square needs 4.</div></div>
+        <div class="ov-card"><h3><span class="glyph">🎮</span>Games</h3><p>A maze to drive through with the arrow keys, a treasure hunt, a cannon, a turtle race, turtle golf and an art machine. All played with turtle commands.</p><div class="demo">&gt;&gt;&gt; t = maze(2)
+&gt;&gt;&gt; t.forward(100)
+💥 Ouch, a wall!</div></div>
+        <div class="ov-card"><h3><span class="glyph">×2</span>More than one turtle</h3><p>Two turtles on one screen, each with its own pen, position and heading. Race them, or draw mirror images.</p></div>
+        <div class="ov-card"><h3><span class="glyph">∞</span>Nothing can freeze the page</h3><p>A loop with no way out is stopped after a few thousand steps with its drawing so far, and anything still running after 5 seconds is killed and Python restarted.</p></div>
+      </div>
+    </section>
+    <section class="hero" style="padding-top:0;gap:14px">
+      <h2 style="font-size:26px">How it works</h2>
+      <div class="ov-steps">
+        <div class="ov-step"><b>Real Python</b><span>CPython 3.12 compiled for the browser (Pyodide) runs in a background thread. Nothing is installed and nothing is sent to a server.</span></div>
+        <div class="ov-step"><b>The real turtle module</b><span><a href="https://github.com/m-aciek/basthon-turtle">basthon-turtle</a>, a rewrite of Python's turtle that draws vector graphics instead of a window. Same commands as IDLE.</span></div>
+        <div class="ov-step"><b>Every command recorded</b><span>Each turtle action is stamped with the line of code that made it. That is what the stepper lights, what Replay plays, and what the checks measure.</span></div>
+        <div class="ov-step"><b>Lessons on top</b><span>The same pieces, with points and a hand-in report: <a href="../t6/">Loops</a> and <a href="../t1/">First steps</a> so far.</span></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== Demo ===== -->
+  <div data-panel="demo" hidden>
+    <section class="q" id="q1" data-kind="turtle">
+      <div class="q-head"><span class="q-num">1</span><h2>Gallery</h2></div>
+      <p class="story">Twelve programs, from a square to a random walk. Each one is a few lines of Python; press <em>Next step</em> and watch which line moves the turtle. The buttons and the prompt draw on the same picture.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Play</span><span class="badge">t = turtle.Pen()</span></div>
+        <div class="tpic" data-turtle="q1"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="q1" data-code="t.forward(100)">t.forward(100)</button>
+          <button type="button" class="btn" data-run="q1" data-code="t.left(90)">t.left(90)</button>
+          <button type="button" class="btn" data-run="q1" data-code="t.circle(50)">t.circle(50)</button>
+          <button type="button" class="btn" data-run="q1" data-code="t.color('red')">t.color('red')</button>
+          <button type="button" class="btn" data-run="q1" data-code="t.width(5)">t.width(5)</button>
+          <button type="button" class="btn" data-run="q1" data-code="t.write('hi', font=('Arial', 20, 'bold'))">t.write('hi')</button>
+          <button type="button" class="btn" data-run="q1" data-code="for i in range(36): t.forward(10); t.left(10)">a circle, by loop</button>
+          <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: t.circle(50)   (type t. and press Tab)" data-label="Python shell for the turtle t"></div></div></div>
+      </div>
+      <p class="story">Below: the editor with Run, Step, Replay and Save, and two example checks that grade the drawing.</p>
+      <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+    </section>
+
+    <section class="q" id="q2" data-kind="turtle">
+      <div class="q-head"><span class="q-num">2</span><h2>Two Turtles</h2></div>
+      <p class="story">A screen can hold more than one turtle. <code>a</code> is red and <code>b</code> is blue; each has its own pen, position and heading.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Play</span><span class="badge">a = turtle.Pen() · b = turtle.Pen()</span></div>
+        <div class="tpic" data-turtle="q2"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="q2" data-code="a.forward(50)">a.forward(50)</button>
+          <button type="button" class="btn" data-run="q2" data-code="b.forward(50)">b.forward(50)</button>
+          <button type="button" class="btn" data-run="q2" data-code="a.left(45)">a.left(45)</button>
+          <button type="button" class="btn" data-run="q2" data-code="b.right(45)">b.right(45)</button>
+          <button type="button" class="btn" data-run="q2" data-code="b.shape('circle')">b.shape('circle')</button>
+          <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: a.circle(40)" data-label="Python shell for turtles a and b"></div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== Games ===== -->
+  <div data-panel="games" hidden>
+    <section class="hero" style="padding-top:0;gap:12px">
+      <p class="lede">Six games, all played with turtle commands. Everything is in a small Python module, <code>turtlegames</code>, so <code>from turtlegames import *</code> works at every prompt and in the editor.</p>
+      <div class="gm-grid">
+        <a class="gm-card" href="#g1"><b>🧱 Maze Runner</b><span>Drive to the flag with the arrow keys or typed commands. Walls stop you. Three levels.</span></a>
+        <a class="gm-card" href="#g2"><b>💰 Treasure Hunt</b><span>Warmer or colder after every move. Dig when it's hot.</span></a>
+        <a class="gm-card" href="#g3"><b>🎯 Cannon</b><span>A target at a secret angle. Aim, fire, three shots.</span></a>
+        <a class="gm-card" href="#g4"><b>🏁 Turtle Race</b><span>Bet on a turtle, then watch the race. Or run five and count.</span></a>
+        <a class="gm-card" href="#g5"><b>⛳ Turtle Golf</b><span>Write the program that sinks the ball in the fewest strokes. Mind the water.</span></a>
+        <a class="gm-card" href="#g6"><b>🎨 Art Machine</b><span>A different spirograph every Run. Then make your own.</span></a>
+      </div>
+    </section>
+
+    <section class="q" id="g1" data-kind="turtle">
+      <div class="q-head"><span class="q-num">🧱</span><h2>Maze Runner</h2></div>
+      <p class="story">Get the turtle to the red flag. Click the picture and use the <strong>arrow keys</strong> (↑ forward 20, ← → turn 15, ↓ back), or type commands at the prompt: <code>t.forward(100)</code> moves further in one go. Walls stop the turtle. Fewest moves wins. Levels: <code>t = maze(2)</code>, <code>t = maze(3)</code>.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Maze</span><span class="badge">t = maze(1)</span></div>
+        <div class="tpic" data-turtle="g1"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="g1" data-code="t.forward(50)">t.forward(50)</button>
+          <button type="button" class="btn" data-run="g1" data-code="t.left(90)">t.left(90)</button>
+          <button type="button" class="btn" data-run="g1" data-code="t.right(90)">t.right(90)</button>
+          <button type="button" class="btn" data-run="g1" data-code="print(t.pos(), t.moves)">where am I?</button>
+          <button type="button" class="btn" data-run="g1" data-code="t = maze(2)">maze 2</button>
+          <button type="button" class="btn" data-run="g1" data-code="t = maze(3)">maze 3</button>
+          <button type="button" class="btn ghost" data-reset="g1">Start again</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="g1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="g1" data-ph="t.forward(100)" data-label="Python shell for the maze"></div></div></div>
+      </div>
+    </section>
+
+    <section class="q" id="g2" data-kind="turtle">
+      <div class="q-head"><span class="q-num">💰</span><h2>Treasure Hunt</h2></div>
+      <p class="story">Treasure is buried at a secret spot. After every move the game says <strong>warmer</strong> or <strong>colder</strong>. Use the arrow keys, or jump with <code>t.goto(x, y)</code> (the numbers round the edge are the coordinates). When it says very hot, <code>t.dig()</code>.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Hunt</span><span class="badge">t = treasure()</span></div>
+        <div class="tpic" data-turtle="g2"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="g2" data-code="t.goto(100, 100)">t.goto(100, 100)</button>
+          <button type="button" class="btn" data-run="g2" data-code="t.goto(-100, -100)">t.goto(-100, -100)</button>
+          <button type="button" class="btn" data-run="g2" data-code="t.forward(40)">t.forward(40)</button>
+          <button type="button" class="btn" data-run="g2" data-code="t.dig()">t.dig()</button>
+          <button type="button" class="btn" data-run="g2" data-code="t = treasure()">new hunt</button>
+          <button type="button" class="btn ghost" data-reset="g2">Start again</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="g2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="g2" data-ph="t.goto(0, 150)" data-label="Python shell for the treasure hunt"></div></div></div>
+      </div>
+    </section>
+
+    <section class="q" id="g3" data-kind="turtle">
+      <div class="q-head"><span class="q-num">🎯</span><h2>Cannon</h2></div>
+      <p class="story">The target sits somewhere on the ring, at a secret angle. Turn the cannon with <code>t.left(…)</code> and <code>t.right(…)</code> (or ← → for 5° at a time), then <code>t.fire()</code> (or ↑). A miss tells you how far off, and which way. Three shots.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Aim</span><span class="badge">t = cannon()</span></div>
+        <div class="tpic" data-turtle="g3"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="g3" data-code="t.left(45)">t.left(45)</button>
+          <button type="button" class="btn" data-run="g3" data-code="t.right(10)">t.right(10)</button>
+          <button type="button" class="btn" data-run="g3" data-code="t.fire()">t.fire()</button>
+          <button type="button" class="btn" data-run="g3" data-code="print(t.heading())">t.heading()</button>
+          <button type="button" class="btn" data-run="g3" data-code="t = cannon()">new target</button>
+          <button type="button" class="btn ghost" data-reset="g3">Start again</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="g3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="g3" data-ph="t.setheading(120)" data-label="Python shell for the cannon"></div></div></div>
+      </div>
+    </section>
+
+    <section class="q" id="g4" data-kind="turtle">
+      <div class="q-head"><span class="q-num">🏁</span><h2>Turtle Race</h2></div>
+      <p class="story">Four turtles, one finish line, random steps. Pick a program: <em>Race!</em>, or bet first with <code>race("blue")</code>. <em>Five races</em> runs them in a loop and counts the wins in a dictionary.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Race</span><span class="badge">race("red")</span></div>
+        <div class="tpic" data-turtle="g4"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="g4" data-code="race('red')">race('red')</button>
+          <button type="button" class="btn" data-run="g4" data-code="race('green')">race('green')</button>
+          <button type="button" class="btn" data-run="g4" data-code="race('purple')">race('purple')</button>
+          <button type="button" class="btn ghost" data-reset="g4">Clear</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="g4" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="g4" data-ph="race('blue')" data-label="Python shell for the race"></div></div></div>
+      </div>
+    </section>
+
+    <section class="q" id="g5" data-kind="turtle">
+      <div class="q-head"><span class="q-num">⛳</span><h2>Turtle Golf</h2></div>
+      <p class="story">The ball is a turtle. Every <code>ball.forward(…)</code> and every turn is a stroke; the fewest strokes into the hole wins. Water sends the ball back to the tee with a penalty. Hole 1 is a straight shot; holes 2 and 3 need a turn or two. Play at the prompt, or write the whole round in the editor and press Run.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Course</span><span class="badge">ball = golf(1)</span></div>
+        <div class="tpic" data-turtle="g5"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="g5" data-code="ball.forward(200)">ball.forward(200)</button>
+          <button type="button" class="btn" data-run="g5" data-code="ball.left(30)">ball.left(30)</button>
+          <button type="button" class="btn" data-run="g5" data-code="ball.right(30)">ball.right(30)</button>
+          <button type="button" class="btn" data-run="g5" data-code="print(ball.pos(), ball.heading())">where's the ball?</button>
+          <button type="button" class="btn" data-run="g5" data-code="ball = golf(2)">hole 2</button>
+          <button type="button" class="btn" data-run="g5" data-code="ball = golf(3)">hole 3</button>
+          <button type="button" class="btn ghost" data-reset="g5">Hole 1 again</button>
+        </div>
+        <p class="tip">Hints: <code>ball.towards(200, 140)</code> is the heading that points at a spot, and <code>ball.distance(200, 140)</code> how far it is. Both are free (no stroke).</p>
+        <div class="shell"><div class="shell-log" data-log="g5" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="g5" data-ph="ball.forward(100)" data-label="Python shell for golf"></div></div></div>
+      </div>
+      <div class="work" style="grid-template-columns:minmax(0,1fr)"><div data-editor="g5"></div></div>
+    </section>
+
+    <section class="q" id="g6" data-kind="turtle">
+      <div class="q-head"><span class="q-num">🎨</span><h2>Art Machine</h2></div>
+      <p class="story"><code>art()</code> draws a random spirograph and tells you its number, so <code>art(7)</code> gets the same picture again. The editor has the recipe written out: change the sides, the size, the turn and the colours to make your own.</p>
+      <div class="bench">
+        <div class="bench-top"><span class="label">Art</span><span class="badge">art()</span></div>
+        <div class="tpic" data-turtle="g6"></div>
+        <div class="controls">
+          <button type="button" class="btn" data-run="g6" data-code="art()">art()</button>
+          <button type="button" class="btn" data-run="g6" data-code="art(7)">art(7)</button>
+          <button type="button" class="btn" data-run="g6" data-code="art(1234)">art(1234)</button>
+          <button type="button" class="btn ghost" data-reset="g6">Clear</button>
+        </div>
+        <div class="shell"><div class="shell-log" data-log="g6" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="g6" data-ph="art(42)" data-label="Python shell for art"></div></div></div>
+      </div>
+      <div class="work" style="grid-template-columns:minmax(0,1fr)"><div data-editor="g6"></div></div>
+    </section>
+  </div>
+
+  <!-- ===== Playground ===== -->
+  <div data-panel="playground" hidden>
+    <section class="q" id="q3" data-kind="turtle">
+      <div class="q-head"><span class="q-num">▶</span><h2>Your turtle</h2>
+        <div class="seg pg-mode" role="group" aria-label="Playground style"><button type="button" data-pgmode="repl" aria-pressed="true">&gt;&gt;&gt; prompt</button><button type="button" data-pgmode="script" aria-pressed="false">script file</button></div>
+      </div>
+      <div data-pg="repl">
+        <p class="story">A blank screen and a turtle called <code>t</code>. Type one line at a time, like in IDLE's shell: each line runs as soon as you press Enter. The <a href="#reference" data-goto="reference">Reference</a> tab has every command.</p>
+        <div class="bench">
+          <div class="bench-top"><span class="label">Prompt</span><span class="badge">t = turtle.Pen()</span></div>
+          <div class="tpic" data-turtle="q3"></div>
+          <div class="controls"><button type="button" class="btn ghost" data-reset="q3">Reset picture</button></div>
+          <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="type a line of Python, like t.circle(80)" data-label="Python shell for your turtle"></div></div></div>
+        </div>
+      </div>
+      <div data-pg="script" hidden>
+        <p class="story">A whole script, like a <code>.py</code> file in IDLE: write it, then <em>Run</em> (or Ctrl/⌘+Enter) draws it from the top. <em>Step</em> runs one line at a time, <em>Replay</em> plays the drawing again, <em>Save picture</em> downloads it. Your script is saved in this browser.</p>
+        <div class="work pg-script"><div data-editor="q3"></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== Reference ===== -->
+  <div data-panel="reference" hidden>
+    <section class="q" id="q4" data-kind="turtle">
+      <div class="q-head"><span class="q-num">?</span><h2>Reference</h2></div>
+      <p class="story">Every turtle command this page supports, with a short example. <em>Try it</em> draws the example on the screen here; then step through it, or type at the prompt to go on from where it left off.</p>
+      <div class="ref-toc" data-ref-toc></div>
+      <div class="ref-layout">
+        <div class="ref-pin">
+          <div class="bench">
+            <div class="bench-top"><span class="label">Example</span><span class="badge">t = turtle.Pen()</span></div>
+            <div class="tpic" data-turtle="q4"></div>
+            <div class="controls"><button type="button" class="btn ghost" data-reset="q4">Reset picture</button></div>
+            <div class="shell"><div class="shell-log" data-log="q4" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q4" data-ph="try the command yourself" data-label="Python shell for the reference turtle"></div></div></div>
+          </div>
+        </div>
+        <div class="ref-list" data-ref-list></div>
+      </div>
+      <div class="teacher ref-note">
+        <h2 style="font-size:22px">Not on this page</h2>
+        <p>These work in IDLE's turtle but not here (the page has no window, mouse or keyboard events):</p>
+        <ul data-ref-unsupported></ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="../../js/config.js?v=__BUILD__"></script>
+<script src="../../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="../turtle-view.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../../js/app.js?v=__BUILD__"></script>
+<script src="tabs.js?v=__BUILD__"></script>
+</body>
+</html>

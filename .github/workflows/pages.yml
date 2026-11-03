@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - name: Stamp the commit on asset links (cache busting)
-        run: sed -i "s/__BUILD__/${GITHUB_SHA::7}/g" site/index.html site/hw*/index.html
+        run: sed -i "s/__BUILD__/${GITHUB_SHA::7}/g" site/index.html site/hw*/index.html site/turtle/index.html site/turtle/*/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

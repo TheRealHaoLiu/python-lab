@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: code runs only in the student's browser, and may only talk to this site.
+     The Python worker is started from a blob: URL so it inherits this policy too. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Turtle 6 · Loops</title>
+<meta name="description" content="Python loops drawn with the turtle: for, range(), while and a loop inside a loop. Step through each drawing, practise with checks, and write real Python.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../../css/lab.css?v=__BUILD__">
+<link rel="stylesheet" href="../turtle.css?v=__BUILD__">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow"><a href="../../">Python Lab</a> · <a href="../">Turtle</a> · Lesson 6</div>
+    <h1><span class="tu">Loops</span> with the turtle</h1>
+    <p class="lede">A loop runs the same block of lines again and again. With a turtle you can <em>see</em> every turn: <strong>for</strong> takes one turn per number in a <code>range()</code>, <strong>while</strong> keeps taking turns as long as its check is <code>True</code>.</p>
+    <div class="idea">
+      <div class="kind-card is-turtle">
+        <h3><span class="glyph">for</span> One turn per item</h3>
+        <div class="demo pre">for i in range(4):
+    t.forward(100)
+    t.left(90)</div>
+        <ul>
+          <li><code>range(4)</code> makes 0, 1, 2, 3: four turns, so four sides. A square in two lines.</li>
+          <li><code>range(1, 6)</code> makes 1, 2, 3, 4, 5: it <strong>stops before</strong> the second number.</li>
+          <li>A colon <code>:</code> ends the <code>for</code> line, and the block is indented 4 spaces.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-turtle">
+        <h3><span class="glyph">while</span> Keep going while True</h3>
+        <div class="demo pre">while size &lt; 200:
+    t.forward(size)
+    t.left(90)
+    size = size + 10</div>
+        <ul>
+          <li>Before every turn, Python checks the condition. <code>False</code> ends the loop.</li>
+          <li>Something in the block must <strong>change</strong> what the check looks at, or the turtle walks for ever.</li>
+          <li>A loop inside a loop: the inner one draws a whole shape on every outer turn.</li>
+        </ul>
+      </div>
+    </div>
+    <ol class="how">
+      <li><b>1</b> Pick a program and press <em>Play</em>, or <em>Next step</em> to watch one line at a time.</li>
+      <li><b>2</b> Type at the <code>&gt;&gt;&gt;</code> prompt: <code>t.forward(100)</code> moves the turtle right away.</li>
+      <li><b>3</b> Try each task in its check box until you get ✓, then write it in <code>homework.py</code> and press Run.</li>
+      <li><b>4</b> Hand in your report at the bottom.</li>
+    </ol>
+    <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </header>
+
+  <!-- Q1 -->
+  <section class="q" id="q1" data-kind="turtle">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Square Dance</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">The turtle <code>t</code> starts in the middle, facing right. <code>t.forward(100)</code> draws a line, <code>t.left(90)</code> turns it. Four of each make a square. A <code>for</code> loop says it once and does it four times.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">t = turtle.Pen()</span></div>
+      <div class="tpic" data-turtle="q1"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q1" data-code="t.forward(100)">t.forward(100)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.left(90)">t.left(90)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.right(45)">t.right(45)</button>
+        <button type="button" class="btn" data-run="q1" data-code="t.color('red')">t.color('red')</button>
+        <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
+      </div>
+      <p class="tip">Press <code>t.forward(100)</code> then <code>t.left(90)</code> four times each: that is the square by hand. Then pick <em>Square with a for loop</em> and step through it, watching which line is lit on each step.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: t.circle(50)" data-label="Python shell for the turtle t"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
+  </section>
+
+  <!-- Q2 -->
+  <section class="q" id="q2" data-kind="turtle">
+    <div class="q-head"><span class="q-num">Q2</span><h2>The Growing Spiral</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">A variable <code>size</code> starts at 10. Each turn the turtle walks <code>size</code> forward, turns left, and <code>size</code> grows by 10, so the square spiral gets bigger and bigger. A <code>while</code> loop keeps going until a check says stop.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">size = 10</span></div>
+      <div class="tpic" data-turtle="q2"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q2" data-code="t.forward(size)">t.forward(size)</button>
+        <button type="button" class="btn" data-run="q2" data-code="t.left(90)">t.left(90)</button>
+        <button type="button" class="btn" data-run="q2" data-code="size = size + 10">size = size + 10</button>
+        <button type="button" class="btn" data-run="q2" data-code="size">size</button>
+        <button type="button" class="btn" data-run="q2" data-code="size < 200">size &lt; 200</button>
+        <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
+      </div>
+      <p class="tip">Press the first three buttons in order, again and again: forward, left, grow. That is one turn of the spiral. A loop just presses the buttons for you, and <code>size &lt; 200</code> is the check a <code>while</code> loop asks before each turn.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: size = size + 10" data-label="Python shell for the spiral"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
+  </section>
+
+  <!-- Q3 -->
+  <section class="q" id="q3" data-kind="turtle">
+    <div class="q-head"><span class="q-num">Q3</span><h2>Flower of Squares</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">A loop inside a loop: the inner loop draws one square, the outer loop turns the turtle a little and draws the next. Six squares, turned 60° each, make a flower.</p>
+    <div class="bench">
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="tpic" data-turtle="q3"></div>
+      <div class="controls">
+        <button type="button" class="btn" data-run="q3" data-code="for j in range(4): t.forward(80); t.left(90)">one square</button>
+        <button type="button" class="btn" data-run="q3" data-code="t.left(60)">t.left(60)</button>
+        <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
+      </div>
+      <p class="tip">Press <em>one square</em>, then <code>t.left(60)</code>, then <em>one square</em> again, six times over. The outer loop is you pressing the buttons; the inner loop is the square.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: t.left(60)" data-label="Python shell for the flower"></div></div></div>
+    </div>
+    <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
+  </section>
+
+  <section class="handin" id="handin">
+    <h2>Hand in</h2>
+    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed and drew. It re-runs your scripts first, so you get the latest results. <em>Save picture</em> under a drawing gives you an image file too.</p>
+    <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
+    <div class="handin-actions">
+      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="copy-report">Copy report</button>
+    </div>
+    <p class="msg" id="report-msg" hidden></p>
+    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
+    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+  </section>
+
+  <section class="teacher" id="teacher">
+    <h2>For the teacher</h2>
+    <p>This is Homework 8 (loops) with the turtle instead of <code>print</code>: the same ideas, the same kinds of task, the same points, but every loop draws something, so a wrong angle or a missing turn is visible at once. The scripts are ordinary <code>import turtle</code> programs and run unchanged in IDLE on the students' own computers (Python for Kids, chapter 4, is the turtle chapter).</p>
+    <ul>
+      <li><strong>Real Python, in the browser.</strong> Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide), with a turtle module that draws to the page instead of a window. Nothing is installed and nothing is sent to a server. A loop that never ends (Q2 task 4) is stopped after 20000 steps with a <code>LoopLimit</code> message, so students can run it and see the turtle walk in circles without freezing the page.</li>
+      <li><strong>How drawings are graded.</strong> The page looks at what the script actually drew: how many lines, how long, which way it turned, whether it came back to the start. A square typed out as eight lines passes the drawing but not task 1, which asks for a <code>for</code> loop: the lines must come from a loop, and where the task names a <code>range()</code>, the loop must use it. The bonus needs a loop inside a loop.</li>
+      <li>Each task has two checks. The <strong>practice check</strong> is the box under the task: students type just that task's code, Check draws it in the little picture and says what is off (“that draws 3 lines; a square needs 4”). <em>Add to homework.py</em> copies it under the task's heading. The <strong>homework.py</strong> check is the graded one.</li>
+      <li>Written answers (Q1 tasks 3, 4 and 6; Q2 tasks 2, 3 and 4; bonus task 2) are graded by you. The page only checks that a comment was written under that task, and for the fact questions that the key idea is there (the numbers 1 to 9; indentation; the number 24).</li>
+      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="../../js/config.js?v=__BUILD__"></script>
+<script src="../../vendor/codemirror.js?v=__BUILD__"></script>
+<script src="../turtle-view.js?v=__BUILD__"></script>
+<script src="lesson.js?v=__BUILD__"></script>
+<script src="../../js/app.js?v=__BUILD__"></script>
+</body>
+</html>

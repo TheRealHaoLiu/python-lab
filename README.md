@@ -26,6 +26,19 @@ written from the book's chapter 7 before the teacher posted Homework 9, to be re
 real posting. It brings the function-machine picture (`js/app.js` buildFn: pick a function, type
 the arguments, see what the body prints and what the call returns).
 
+**Turtle track** (`site/turtle/`, separate from the homework pages): the same lessons drawn
+with the turtle. Lesson 6 (loops) and lesson 1 (first steps, variables) exist; the plan for the
+rest is `docs/TURTLE-PLAN.md`. Python's `turtle` comes from the vendored
+[basthon-turtle](https://github.com/m-aciek/basthon-turtle) (`site/vendor/basthon-turtle/`, GPL-3),
+which draws SVG instead of a Tk window; `py-worker.js` loads it only on turtle pages, `labkit.py`
+records each turtle command with the student's line, and `site/turtle/turtle-view.js` draws and
+steps through them. Grading looks at the drawing (`c.segs`, `c.turns`, `c.fills`, `c.writes`,
+scoped to the task's heading like `c.loops`); a practice check with `cell.draw(ctx, input, printed)`
+replays the student's code in a small canvas. Scripts stay plain `import turtle` and run
+unchanged in IDLE. `site/turtle/play/` is the showcase: Overview, Demo (gallery, editor, example
+checks, two turtles), Games (`turtlegames.py`: maze with arrow keys, treasure hunt, cannon, race,
+golf, art machine), Playground and Reference (38 commands, each with a runnable example).
+
 | | What it is | Python |
 |---|---|---|
 | `site/` | A static web page: clickable pictures, `assert` practice checks, a `homework.py` editor with syntax colouring and Tab completion, and a hand-in report | Real CPython 3.12 running in the browser ([Pyodide](https://pyodide.org)) |
@@ -46,6 +59,7 @@ site/
   hw8/              Homework 8 (for, range(), while, nested loops): step through a loop one turn at a time
   hw1/ … hw4/       Homeworks 1–4: shell transcript and type badges; variables as labels;
                     %s / .format() / f-string slot machine (js/app.js buildFmt); lists
+  turtle/           the turtle track: index, turtle.css, turtle-view.js, t1/ and t6/ (same layout as hwN/)
   css/lab.css       shared styles (light and dark)
   js/config.js      where Pyodide comes from, run timeout
   js/app.js         shared page behaviour: pictures, editors, checks, report
