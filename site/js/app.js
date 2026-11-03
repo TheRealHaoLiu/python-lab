@@ -130,7 +130,8 @@ const BRK = { list: '[]', tuple: '()', dict: '{}' };
 const rowKey = (q, name) => name === q.var ? q.id : `${q.id}:${name}`;
 function initVals(q) {
   const r = q.init(), m = q.vars.length > 1 ? r : { [q.var]: r };
-  return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { exists: true, value: v }]));
+  // a variable the picture shows but init() leaves out starts as "not set yet" (undefined = never set)
+  return Object.fromEntries(q.vars.map(k => [k, k in m && m[k] !== undefined ? { exists: true, value: m[k] } : { exists: false, value: null, never: true }]));
 }
 const valOf = (q, name = q.var) => { const c = S[q.id].vals[name]; return c ? c.value : null; };
 function renderPicture(q, h) {
@@ -146,7 +147,7 @@ function renderVal(q, name) {
   const cur = S[q.id].vals[name] || { exists: false, value: null };
   el.innerHTML = `<span class="var-name">${esc(name)} =</span>` + (cur.exists
     ? `<span class="val-box">${esc(repr(cur.value))}</span><span class="badge">${esc(TYPE(cur.value))}</span>`
-    : '<span class="row-empty">deleted. Press “Reset picture”.</span>');
+    : `<span class="row-empty">${cur.never || (S[q.id].never && S[q.id].never.has(name)) ? 'not set yet' : 'deleted. Press “Reset picture”.'}</span>`);
 }
 function renderRow(q, name, h) {
   const key = rowKey(q, name), row = $(`[data-row="${key}"]`); if (!row) return;
@@ -1051,12 +1052,12 @@ function updSlice() {
   $('#q1-start-o').textContent = a; $('#q1-stop-o').textContent = b;
   const idxs = []; for (let k = a; k < Math.min(b, n); k++) idxs.push(k);
   applyHL(QS[0], { idxs, slice: true, fence: Math.max(Math.min(b, n), a) });
-  const code = `spells[${a}:${b}]`, out = $('#q1-slice-read');
+  const code = `${QS[0].var}[${a}:${b}]`, out = $('#q1-slice-read');
   out.innerHTML = `<span>${hl(code)}</span><span class="arrow">→</span><span class="slice-val">…</span>`;
   clearTimeout(sliceTimer);
   sliceTimer = setTimeout(async () => {
     try {
-      const r = await Py.call('peek', { qid: 'q1', expr: code, var: 'spells', setup: QS[0].setup });
+      const r = await Py.call('peek', { qid: 'q1', expr: code, var: QS[0].var, setup: QS[0].setup });
       const el = $('.slice-val', out); if (el) el.textContent = r.error || r.repr;
     } catch (e) { /* worker restarting */ }
   }, 120);
@@ -1078,6 +1079,7 @@ Py.on((state, d) => {
 
 QS.forEach(q => {
   S[q.id] = { vals: initVals(q), hist: [], hp: 0, done: [], cells: [], inputs: {}, stepping: false, stepHTML: '' };
+  S[q.id].never = new Set(Object.entries(S[q.id].vals).filter(([, v]) => v.never).map(([k]) => k));
   renderPicture(q, null); buildEditor(q); buildTasks(q); paintTasks(q); buildFlow(q); buildLoop(q);
   q.vars.forEach(name => {
     const row = $(`[data-row="${rowKey(q, name)}"]`); if (!row) return;
