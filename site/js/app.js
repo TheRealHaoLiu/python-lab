@@ -1056,7 +1056,7 @@ function composeCell(q, t, k, r) {
   const P = (r.printed || []).map(p => ['out', p]);
   if (r.state === 'empty') return { state: 'empty', lines: [] };
   if (r.state === 'blocked') return { state: 'blocked', lines: r.has_input ? [['note', `Finish task ${r.blocked_by + 1} first. This list depends on it.`]] : [] };
-  if (r.state === 'skip') return { state: 'fail', lines: [['note', `Use ${q.var} to get there. Typing the answer in directly doesn't count.`]] };
+  if (r.state === 'skip') return { state: 'fail', lines: [['note', `Use ${q.vars.length > 1 ? 'one of the variables (' + q.vars.join(', ') + ')' : q.var} to get there. Typing the answer in directly doesn't count.`]] };
   if (c.prog) {
     const v = q.probe.var, vals = c.values || q.probe.values;
     const trap = (c.traps || []).find(([re]) => re.test(input));
