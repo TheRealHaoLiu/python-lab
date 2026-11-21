@@ -5,6 +5,7 @@ Interactive Python homework for a middle-school class, live at
 
 | # | Homework | Page | Notebook |
 |---|---|---|---|
+| 9 | break and continue (squares and Fibonacci, for or while?, break and continue) | [`hw9/`](https://therealhaoliu.github.io/python-lab/hw9/) | none |
 | 8 | Loops (wizard's potion assembly line, magic coin counter, huge hairy pants) | [`hw8/`](https://therealhaoliu.github.io/python-lab/hw8/) | none |
 | 7 | Flow Control (roller coaster height check, joke machine, secret word) | [`hw7/`](https://therealhaoliu.github.io/python-lab/hw7/) | none |
 | 6 | Dictionaries (class pets, book shelf vs. sticker album, team rosters) | [`hw6/`](https://therealhaoliu.github.io/python-lab/hw6/) | none |
@@ -21,9 +22,10 @@ here for the next student. Their points per task are the pages' own; the posting
 the course skips. Its playground (`js/app.js` buildFs) evaluates one editable f-string and shows
 what every `{…}` became.
 
-`site/hw9/` is an **unlisted draft** (not on the landing page, `noindex`): functions and modules,
-written from the book's chapter 7 before the teacher posted Homework 9, to be reworded to the
-real posting. It brings the function-machine picture (`js/app.js` buildFn: pick a function, type
+`site/functions/` is an **unlisted draft** (not on the landing page, `noindex`): functions and
+modules, written from the book's chapter 7 ahead of the homework that covers them (it sat at
+`/hw9/` until the real Homework 9 turned out to be break/continue), to be reworded to the real
+posting. It brings the function-machine picture (`js/app.js` buildFn: pick a function, type
 the arguments, see what the body prints and what the call returns).
 
 **Turtle track** (`site/turtle/`, separate from the homework pages): the same lessons drawn
@@ -57,6 +59,7 @@ site/
   hw6/              Homework 6 (dictionaries), same layout
   hw7/              Homework 7 (if/elif/else, and/or, None): slider pictures instead of boxes
   hw8/              Homework 8 (for, range(), while, nested loops): step through a loop one turn at a time
+  hw9/              Homework 9 (sequences, for vs while, break and continue): the loop picture shows jumps
   hw1/ … hw4/       Homeworks 1–4: shell transcript and type badges; variables as labels;
                     %s / .format() / f-string slot machine (js/app.js buildFmt); lists
   turtle/           the turtle track: index, turtle.css, turtle-view.js, t1/ and t6/ (same layout as hwN/)
@@ -113,6 +116,15 @@ The `for x in …` box (`labkit.seq`) draws every value a `range()` or list woul
 sees `c.loops`: each top-level `for`/`while` under the task's heading with what it printed,
 its `iter`/`test` text and nesting `depth`; a prog cell may expect a list of lines, and its
 `probe` runs the student's loop with a second list or number so hand-typed prints don't pass.
+
+**break and continue (Homework 9).** The picture runs a loop body one statement at a time, where
+a bare `break`/`continue` is a SyntaxError, so `labkit` rewrites the loop's own jumps into a
+private exception (`_Jumps`; a loop inside keeps its own). A turn that jumped carries
+`jump: {kind, line}`: the line gets a chip, the rest of the body is dimmed for that turn, the
+strip marks the turn (striped = continue, red = break), and `break` ends the trace (`broke`).
+`c.loops[i].jumps` lists the jumps a graded loop uses. A prog cell with `outOk(lines, input)`
+(and `prog: () => null`) lets the lesson judge the printed lines itself, true or a hint string,
+for answers whose wording varies (`n` and `n**2` on each line, 1–9 or 1–10).
 
 **Runaway code.** Student code runs under a step budget (`labkit.Budget`, 20 000 line
 events): a `while` that never ends stops with `LoopLimit` and its output so far, and the page

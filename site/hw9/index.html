@@ -6,9 +6,8 @@
      The Python worker is started from a blob: URL so it inherits this policy too. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex">
-<title>Homework 9 · Functions (draft)</title>
-<meta name="description" content="Python practice on functions and modules: def, parameters, return, variable scope, import; a function machine you can feed arguments, and real Python in the browser.">
+<title>Homework 9 · break and continue</title>
+<meta name="description" content="Python practice on number sequences, for vs while, and break and continue: loops you can step through one turn at a time, practice checks and a real Python editor.">
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,38 +17,36 @@
 <body>
 <div class="wrap">
   <header class="hero">
-    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 9 · draft</div>
-    <h1><span class="fn">Functions</span> Lab</h1>
-    <p class="lede">A function is a recipe with a name. <code>def</code> writes the recipe once; calling it by name cooks it, as many times as you like, with different ingredients each time. <code>return</code> hands the result back. And <code>import</code> borrows a whole toolbox of functions someone else wrote.</p>
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 9</div>
+    <h1><span class="lp">break</span> &amp; continue Lab</h1>
+    <p class="lede">Loops make number sequences: squares, and the Fibonacci numbers, where each number is the sum of the two before it. Pick <strong>for</strong> when you know how many turns you need, <strong>while</strong> when a rule decides. And inside any loop, <strong>break</strong> and <strong>continue</strong> change what happens next.</p>
     <div class="idea">
-      <div class="kind-card is-fn">
-        <h3><span class="glyph">def</span> Write it, then call it</h3>
-        <div class="demo pre">def greet(name):
-    print("Hello, " + name)
-
-greet("Mary")
-greet("Owen")</div>
+      <div class="kind-card is-loop">
+        <h3><span class="glyph">for</span> or <span class="glyph">while</span>?</h3>
+        <div class="demo pre">for i in range(20):     # 20 turns, no more
+while total &lt;= 100:    # until the rule says stop</div>
         <ul>
-          <li><code>name</code> is a <strong>parameter</strong>: a label for whatever you pass in.</li>
-          <li>The indented block runs only when you <strong>call</strong> <code>greet(…)</code>.</li>
-          <li>Two calls, two hellos. One recipe.</li>
+          <li><code>for</code> with <code>range()</code>: you know the number of turns before you start.</li>
+          <li><code>while</code>: you don't know how many turns. The check decides, before every turn.</li>
+          <li><code>a, b = b, a + b</code> moves two numbers along at once: <code>a</code> gets the old <code>b</code>, <code>b</code> gets the sum.</li>
         </ul>
       </div>
-      <div class="kind-card is-fn">
-        <h3><span class="glyph">↩</span> return, scope, import</h3>
-        <div class="demo pre">def double(n):
-    return n * 2
-
-print(double(21))</div>
+      <div class="kind-card is-loop">
+        <h3><span class="glyph">break</span> &amp; <span class="glyph">continue</span></h3>
+        <div class="demo pre">for i in range(1, 8):
+    if i == 3:
+        continue   # skip the rest of THIS turn
+    if i == 6:
+        break      # leave the loop for good
+    print(i)       # prints 1 2 4 5</div>
         <ul>
-          <li><code>return</code> hands a value back. No <code>return</code>: the call gives <code>None</code>.</li>
-          <li>A variable made inside a function lives only inside it.</li>
-          <li><code>import time</code> borrows a toolbox; <code>time.asctime()</code> uses one tool from it.</li>
+          <li><code>continue</code> jumps back to the top for the next turn. The lines below it don't run this time.</li>
+          <li><code>break</code> ends the whole loop at once. Python goes on with the first line after it.</li>
         </ul>
       </div>
     </div>
     <ol class="how">
-      <li><b>1</b> Feed the function machine different values and watch what comes back.</li>
+      <li><b>1</b> Press <em>Next turn</em> and watch which lines run, and which get skipped.</li>
       <li><b>2</b> Try each task in its check box until you get ✓.</li>
       <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
       <li><b>4</b> Hand in your report at the bottom.</li>
@@ -59,63 +56,66 @@ print(double(21))</div>
   </header>
 
   <!-- Q1 -->
-  <section class="q" id="q1" data-kind="fn">
-    <div class="q-head"><span class="q-num">Q1</span><h2>Robot Chef's Recipes</h2><span class="q-pts" data-pts="q1"></span></div>
-    <p class="story">A robot chef only knows recipes it has been taught. Teach it a few: one that says hello, one that counts savings, one that measures a rectangle.</p>
+  <section class="q" id="q1" data-kind="loop">
+    <div class="q-head"><span class="q-num">Q1</span><h2>Number Sequences with Loops</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">Squares go 1, 4, 9, 16, … The Fibonacci sequence goes 0, 1, 1, 2, 3, 5, 8, … where each number is the sum of the two before it. One loop of each kind makes them.</p>
     <div class="bench">
-      <div class="bench-top"><span class="label">Explore</span><span class="badge">the function machine</span></div>
-      <div class="fnpic" data-fn="q1"></div>
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">three ints</span></div>
+      <div class="vals"><div class="val" data-val="q1"></div><div class="val" data-val="q1:a"></div><div class="val" data-val="q1:b"></div></div>
+      <div class="loop" data-loop="q1"></div>
       <div class="controls">
-        <button type="button" class="btn" data-run="q1" data-code="savings(10, 10, 5)">savings(10, 10, 5)</button>
-        <button type="button" class="btn" data-run="q1" data-code="savings(20, 0, 5)">savings(20, 0, 5)</button>
-        <button type="button" class="btn" data-run="q1" data-code="wave('Mary')">wave('Mary')</button>
-        <button type="button" class="btn" data-run="q1" data-code="wave('Owen')">wave('Owen')</button>
-        <button type="button" class="btn warn" data-run="q1" data-code="savings(10, 10)">Try: savings(10, 10)</button>
-        <button type="button" class="btn warn" data-run="q1" data-code="print(wave('Mary'))">Try: print(wave('Mary'))</button>
+        <button type="button" class="btn" data-run="q1" data-code="n ** 2">n ** 2</button>
+        <button type="button" class="btn" data-run="q1" data-code="n = n + 1">n = n + 1</button>
+        <button type="button" class="btn" data-run="q1" data-code="n ** 2 <= 10000">n ** 2 &lt;= 10000</button>
+        <button type="button" class="btn" data-run="q1" data-code="a, b = b, a + b">a, b = b, a + b</button>
         <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
       </div>
-      <p class="tip">Same recipe, different name, different hello. Three parameters need three arguments: <code>savings(10, 10)</code> is a <strong>TypeError</strong>. And <code>wave()</code> prints but returns nothing, so <code>print(wave('Mary'))</code> shows the hello and then <code>None</code>.</p>
-      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: triangle_area(10, 3)" data-label="Python shell for the recipes"></div></div></div>
+      <p class="tip">Press <code>a, b = b, a + b</code> a few times and watch the two boxes: <code>a</code> takes <code>b</code>'s old number, and <code>b</code> becomes the sum of the old two. Both change in the same step, so nothing gets lost.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: 100 ** 2" data-label="Python shell for n, a and b"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
   </section>
 
   <!-- Q2 -->
-  <section class="q" id="q2" data-kind="fn">
-    <div class="q-head"><span class="q-num">Q2</span><h2>Spaceship Cans</h2><span class="q-pts" data-pts="q2"></span></div>
-    <p class="story">You are collecting drink cans to build a spaceship. A function can run the whole year's count for any number of cans a week, and parameters let you change the plan without rewriting the loop.</p>
+  <section class="q" id="q2" data-kind="loop">
+    <div class="q-head"><span class="q-num">Q2</span><h2>break and continue</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">This Fibonacci loop from class has both: <code>continue</code> leaves one number out, and <code>break</code> stops the loop long before its own check would.</p>
     <div class="bench">
-      <div class="bench-top"><span class="label">Explore</span><span class="badge">a loop inside a function</span></div>
-      <div class="fnpic" data-fn="q2"></div>
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="row-wrap own-tint"><div class="var-name">aListOfFibs = <span class="badge" data-badge="q2"></span></div><span class="brk" data-open="q2">[</span><div class="row" data-row="q2"></div><span class="brk" data-close="q2">]</span></div>
+      <div class="vals"><div class="val" data-val="q2:a"></div><div class="val" data-val="q2:b"></div></div>
+      <div class="loop" data-loop="q2"></div>
       <div class="controls">
-        <button type="button" class="btn" data-run="q2" data-code="pocket(4, 5)">pocket(4, 5)</button>
-        <button type="button" class="btn" data-run="q2" data-code="pocket(52, 2)">pocket(52, 2)</button>
-        <button type="button" class="btn warn" data-run="q2" data-code="print(total)">Try: print(total)</button>
-        <button type="button" class="btn warn" data-run="q2" data-code="print(week)">Try: print(week)</button>
+        <button type="button" class="btn" data-run="q2" data-code="a, b = b, a + b">a, b = b, a + b</button>
+        <button type="button" class="btn" data-run="q2" data-code="aListOfFibs.append(b)">aListOfFibs.append(b)</button>
+        <button type="button" class="btn" data-run="q2" data-code="b == 987">b == 987</button>
+        <button type="button" class="btn" data-run="q2" data-code="b > 250000">b &gt; 250000</button>
         <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
       </div>
-      <p class="tip"><code>total</code> and <code>week</code> are made inside <code>pocket()</code>. After the call they are gone: <strong>NameError</strong>. That is scope: a function's own variables live only while it runs. The value escapes only through <code>return</code>.</p>
-      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: pocket(2, 100)" data-label="Python shell for the can functions"></div></div></div>
+      <p class="tip">In the picture, a <code>continue</code> turn shows up striped in the strip, and a <code>break</code> turn red. On those turns, the lines below the jump are dimmed: they didn't run.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: 987 in aListOfFibs" data-label="Python shell for aListOfFibs"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
   </section>
 
   <!-- Q3 -->
-  <section class="q" id="q3" data-kind="fn">
-    <div class="q-head"><span class="q-num">Q3</span><h2>Borrowing Tools: Modules</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
-    <p class="story">Python comes with toolboxes called <strong>modules</strong>. <code>import</code> opens one; then <code>module.tool()</code> uses a tool from it. Two to try: <code>time</code> for the clock, <code>random</code> for dice.</p>
+  <section class="q" id="q3" data-kind="loop">
+    <div class="q-head"><span class="q-num">Q3</span><h2>A Sequence That Keeps Going</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">A student wrote a loop that builds a list of 8 numbers. Now they want it to keep going.</p>
     <div class="bench">
-      <div class="bench-top"><span class="label">Explore</span><span class="badge">import time, import random</span></div>
-      <div class="fnpic" data-fn="q3"></div>
+      <div class="bench-top"><span class="label">Explore</span></div>
+      <div class="row-wrap own-tint"><div class="var-name">result = <span class="badge" data-badge="q3"></span></div><span class="brk" data-open="q3">[</span><div class="row" data-row="q3"></div><span class="brk" data-close="q3">]</span></div>
+      <div class="vals"><div class="val" data-val="q3:a"></div><div class="val" data-val="q3:b"></div></div>
+      <div class="loop" data-loop="q3"></div>
       <div class="controls">
-        <button type="button" class="btn" data-run="q3" data-code="time.asctime()">time.asctime()</button>
-        <button type="button" class="btn" data-run="q3" data-code="random.randint(1, 6)">random.randint(1, 6)</button>
-        <button type="button" class="btn" data-run="q3" data-code="roll_dice(20)">roll_dice(20)</button>
-        <button type="button" class="btn warn" data-run="q3" data-code="asctime()">Try: asctime()</button>
+        <button type="button" class="btn" data-run="q3" data-code="len(result)">len(result)</button>
+        <button type="button" class="btn" data-run="q3" data-code="len(result) < 8">len(result) &lt; 8</button>
+        <button type="button" class="btn" data-run="q3" data-code="a % 2">a % 2</button>
+        <button type="button" class="btn" data-run="q3" data-code="a * b">a * b</button>
         <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
       </div>
-      <p class="tip">Press <code>random.randint(1, 6)</code> a few times: a different number each time, that is the point. Without the toolbox name in front, <code>asctime()</code> is a <strong>NameError</strong>: Python only knows it as <code>time.asctime</code>.</p>
-      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: random.randint(1, 100)" data-label="Python shell for modules"></div></div></div>
+      <p class="tip">Step through <em>The student's loop</em> and watch <code>a</code>: does the <code>if a % 2 == 0</code> branch ever run? Then compare <em>Only 4 items</em>: the <code>while</code> check alone decides how long the list gets.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: 3 % 2" data-label="Python shell for result"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
   </section>
@@ -135,12 +135,14 @@ print(double(21))</div>
 
   <section class="teacher" id="teacher">
     <h2>For the teacher</h2>
-    <p><strong>This page is a draft written before Homework 9 was posted.</strong> It follows the book's chapter on functions and modules (<code>savings</code>, <code>spaceship_building</code>, variable scope, <code>import time</code> and <code>random</code>) in the same shape as the earlier homeworks. When the real assignment is posted, the stories and wording are swapped for yours.</p>
-    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer.</p>
+    <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer. The first visit downloads Python once, which takes a few seconds; after that it is cached. A loop that never ends is stopped after 20000 steps with a <code>LoopLimit</code> message and its output so far, so students can try the bonus's endless loop without freezing the page.</p>
     <ul>
-      <li><strong>How functions are graded.</strong> The page looks for the <code>def</code> line with the right name and number of parameters, a <code>return</code> where one is asked for, the calls the task names, and what the script printed. The practice boxes run the student's function with a second argument (another name, 13 cans a week) so that printed-by-hand answers don't pass.</li>
-      <li>Written answers (Q1 task 3, Q2 task 3, bonus task 3) are for you to grade; the page checks only that the key idea is there (<code>None</code> and <code>return</code>; NameError and scope; what import brings in).</li>
-      <li>Points: 10 + 10 + 10 + 5 + 15, then 15 + 5 + 10 + 10 + 10, bonus 3 + 4 + 3. Change them in <code>lesson.js</code>.</li>
+      <li><strong>How loops are graded.</strong> Every top-level <code>for</code> or <code>while</code> in homework.py runs as part of the script, and the page compares what that loop printed with what the task asks for. Q1 task 1 accepts any wording, as long as line <em>n</em> shows <em>n</em> and <em>n</em>² from 1 up to 100 and 10000. Q1 task 2 needs <code>range(20)</code> and the numbers 0 to 4181, one per line or all on one line. Q2 task 4 must use <code>continue</code> and <code>range(1, 11)</code>; task 5 must use <code>break</code> and <code>range(1, 100)</code>, and accepts 1 to 9 or 1 to 10, since “stops when the number reaches 10” reads both ways.</li>
+      <li>Each task has two checks. The <strong>practice check</strong> is the box under the task: students type just that task's code, and Check runs it and says what is off. <em>Add to homework.py</em> copies it under the task's heading. The <strong>homework.py</strong> check is the graded one.</li>
+      <li>Written answers (Q1 tasks 3, 4 and 5; Q2 tasks 1, 2, 3 and 6; both bonus parts) are graded by you. The page only checks that a comment was written under that task, and that the key idea is there (Q1 task 4 names <code>while</code>; Q2 task 6 names both words).</li>
+      <li>The pictures step through loops one turn at a time and now show <code>break</code> and <code>continue</code>: the line that jumped gets a label, and the lines it skipped are dimmed for that turn. The sample programs are your Loop A, Loop B and the Fibonacci code from class, plus look-alikes (cubes, a sequence starting 2, 1, skipping odd numbers, stopping at a word), so they never show a task's answer.</li>
+      <li><strong>The bonus.</strong> The posted output, <code>[21, 13, 9, 21, 14, 9, 30, 16]</code>, isn't what this code prints: <code>a</code> starts at 3 and only ever goes up by 2, so it is always odd and the <code>if a % 2 == 0</code> branch never runs. The code really prints <code>[21, 40, 63, 90, 121, 156, 195, 238]</code>, and students will see that when they run it, so the page shows that output. A few words were also missing from the posted bonus question (“the student wants to …”, “state what the … will be”), apparently lost in Classroom's formatting. The page reads it as: make the loop keep going (a <code>while</code> line whose check is never False), and say what the output will be.</li>
+      <li>The assignment answers go in one script. This page has an editor per question; the report puts the three one after another, so together they read as one script. The bonus's new <code>while</code> line goes in as a comment, because a loop that never ends would stop the rest of the file.</li>
       <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
       <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
     </ul>

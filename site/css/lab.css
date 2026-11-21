@@ -403,12 +403,19 @@ pre.report{background:var(--code-bg);color:var(--code-ink);border-radius:10px;pa
 .lp-lines{max-height:240px;overflow:auto;display:grid;gap:1px;align-content:start}
 .lp-lines .new{border-left:3px solid var(--code-ok);margin-left:-10px;padding-left:7px;background:var(--code-sel)}
 .lp-seq{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* break / continue (hw9): the line that jumped, and its turn in the strip */
+.fl-ln.jump{background:var(--code-sel);border-left-color:var(--code-err)}
+.strip.turns .cells i.j-continue{background:repeating-linear-gradient(135deg,var(--ok) 0 6px,color-mix(in srgb,var(--ok) 55%,var(--card)) 6px 12px)}
+.strip.turns .cells i.j-break{background:var(--err);color:var(--card)}
+.lp-bench{margin-left:auto;font:600 12px var(--f-code);color:var(--kind);background:var(--kind-soft);border-radius:999px;padding:2px 10px}
+.lp-bench[hidden]{display:none}
 .seq-box{display:grid;gap:0;text-align:center;font:600 14px var(--f-code);border:2px solid var(--kind);border-radius:8px;padding:3px 10px 5px;background:var(--card);min-width:44px}
 .seq-box i{font:600 10px var(--f-code);color:var(--muted);font-style:normal}
 .seq-more{color:var(--muted);font:13px var(--f-code)}
 /* a list drawn inside a loop bench keeps the list colour; the bench stays loop-coloured */
 .row-wrap.own-tint{position:relative}
 .row-wrap.own-tint .var-name .badge{position:absolute;top:0;right:0}
+@media (max-width:520px){.row-wrap.own-tint .var-name .badge,.pair .var-name .badge{position:static;display:inline-block;margin:2px 0 0 6px}}  /* a long name (aListOfFibs) isn't covered by its badge */
 
 /* ---------- string template pictures: %s, {} and f-strings (hw3) ---------- */
 .fmt{display:grid;gap:14px;min-width:0}

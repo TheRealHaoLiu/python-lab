@@ -145,6 +145,8 @@ function initVals(q) {
 const valOf = (q, name = q.var) => { const c = S[q.id].vals[name]; return c ? c.value : null; };
 function renderPicture(q, h) {
   const mine = name => h && (h.var || q.var) === name ? h : null;
+  const st = S[q.id];
+  if (st && st.lp && st.lp.following) { st.lp.following = false; const note = $(`#${q.id} [data-lp-bench]`); if (note) note.hidden = true; }
   q.vars.forEach(name => { renderRow(q, name, mine(name)); renderVal(q, name); });
   if ($(`[data-map="${q.id}"]`)) renderMap(q, mine(q.var));
   if (q.flow) flowFromShell(q);
@@ -377,7 +379,10 @@ function buildLoop(q) {
   $$('[data-prog]', host).forEach(b => b.addEventListener('click', () => {
     st.lp.prog = +b.dataset.prog; $$('[data-prog]', host).forEach(x => x.setAttribute('aria-pressed', String(x === b))); loadLoop(q);
   }));
-  const go = pos => { st.lp.pos = Math.max(0, Math.min(st.lp.steps.length, pos)); paintLoop(q); };
+  // the bench's boxes follow the stepper once it is used, until the >>> prompt or a button is used again
+  const top = host.closest('.bench') && host.closest('.bench').querySelector('.bench-top');
+  if (top && !top.querySelector('[data-lp-bench]')) top.insertAdjacentHTML('beforeend', '<span class="lp-bench" data-lp-bench hidden></span>');
+  const go = pos => { st.lp.following = true; st.lp.pos = Math.max(0, Math.min(st.lp.steps.length, pos)); paintLoop(q); };
   $$('[data-lp]', host).forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.lp, n = st.lp.steps.length;
     go(k === 'restart' ? 0 : k === 'back' ? st.lp.pos - 1 : k === 'next' ? st.lp.pos + 1 : n);
@@ -395,7 +400,7 @@ function buildLoop(q) {
 }
 async function loadLoop(q) {
   const f = q.loop, st = S[q.id];
-  try { st.lp.res = await Py.call('trace', { src: f.programs[st.lp.prog].code, var: q.var, setup: q.setup, vars: f.watch || [], limit: f.limit || 60 }); }
+  try { st.lp.res = await Py.call('trace', { src: f.programs[st.lp.prog].code, var: q.var, setup: q.setup, vars: f.watch || [], limit: f.limit || 60, bench: q.vars }); }
   catch (e) { st.lp.res = { error: failText(e) }; }
   // one step per turn; a turn with an inner loop becomes one step per inner turn
   const steps = [];
@@ -442,6 +447,12 @@ function paintLoop(q) {
     : `<span class="fl-chip yes">→ turn ${turn.n} of ${total}: ${esc(res.target)} = ${esc(turn.val)}</span>`;
   const state = {}, chips = {};
   const litBody = (res, on) => { for (let L = res.body[0]; L <= res.body[1]; L++) state[L] = on ? 'lit' : 'dim'; };
+  // only the lines that ran this turn (an if lights the branch it took); else: is lit when its block ran
+  const litTurn = (res, turn) => {
+    if (!turn || !turn.ran) return litBody(res, true);
+    const ran = new Set(turn.ran);
+    for (let L = res.body[0]; L <= res.body[1]; L++) state[L] = ran.has(L) || (/^\s*else\s*:/.test(lines[L - 1] || '') && ran.has(L + 1)) ? 'lit' : 'dim';
+  };
   if (!cur) {
     state[r.line] = 'test'; litBody(r, false);
     chips[r.line] = `<span class="fl-chip skip">${isFor ? `${r.count} turn${r.count === 1 ? '' : 's'} to go` : 'not checked yet'}</span>`;
@@ -449,12 +460,22 @@ function paintLoop(q) {
   } else {
     state[r.line] = 'test'; chips[r.line] = chipFor(r, t, cur.i, turns);
     const ending = t.test && !t.test[0];
-    litBody(r, !ending);
+    if (ending) litBody(r, false); else litTurn(r, t);
     if (t.inner && u) {
-      // the inner loop: its own chip and body; the rest of the outer body stays lit
+      // the inner loop: its own chip and body; the rest of the outer body keeps its own lighting
       state[t.inner.line] = 'test'; chips[t.inner.line] = chipFor(t.inner, u, cur.j, t.inner.turns.length);
-      for (let L = t.inner.body[0]; L <= t.inner.body[1]; L++) state[L] = 'lit';
+      litTurn(t.inner, u);
     }
+    // break / continue ended this turn early: the lines after it in the body didn't run
+    const jumped = (res, turn) => {
+      const j = turn && turn.jump; if (!j) return;
+      for (let L = j.line + 1; L <= res.body[1]; L++) state[L] = 'dim';
+      state[j.line] = 'jump';
+      chips[j.line] = j.kind === 'break'
+        ? '<span class="fl-chip no">→ break: the loop stops right here</span>'
+        : '<span class="fl-chip skip">→ continue: skip the rest, go to the next turn</span>';
+    };
+    if (t.inner && u) jumped(t.inner, u); else jumped(r, t);
     if (r.after) for (let L = r.after[0]; L <= r.after[1]; L++) state[L] = done ? 'lit' : 'dim';
     if (done && r.after) chips[r.after[0]] = '<span class="fl-chip yes">→ after the loop</span>';
     if (r.endless && pos === n) { chips[r.line] = `<span class="fl-chip no">→ still True after ${turns} turns: this loop never ends</span>`; }
@@ -469,10 +490,13 @@ function paintLoop(q) {
   out.innerHTML = shown.length ? shown.map(([c, x]) => `<div class="${c === 'err' ? 's-err' : 's-out'}${c === 'new' ? ' new' : ''}">${esc(x)}</div>`).join('') : '<div class="s-note">(nothing yet)</div>';
   out.scrollTop = out.scrollHeight;
   // status: which turn, and the watched variables after it
-  const vars = t && t.vars ? Object.entries(u && u.vars ? u.vars : t.vars).map(([k, v]) => `<code>${esc(k)} = ${esc(v)}</code>`).join(' ') : '';
+  // only the watched variables this program mentions (the setup defines them all)
+  const mentions = k => new RegExp(`\\b${k}\\b`).test(f.programs[lp.prog].code);
+  const vars = t && t.vars ? Object.entries(u && u.vars ? u.vars : t.vars).filter(([k]) => mentions(k)).map(([k, v]) => `<code>${esc(k)} = ${esc(v)}</code>`).join(' ') : '';
   status.innerHTML = !cur ? (isFor ? `before the loop: ${r.count} turn${r.count === 1 ? '' : 's'} to go` : 'before the loop')
     : r.endless && pos === n ? `still going after ${turns} turns: the check never becomes False ${vars}`
-    : done ? `finished after ${isFor ? turns : turns - 1} turn${turns === 1 ? '' : 's'} ${vars}`
+    : done && r.broke ? `break ended the loop on turn ${turns} ${vars}`
+    : done ? `finished after ${isFor ? turns : turns - 1} turn${(isFor ? turns : turns - 1) === 1 ? '' : 's'} ${vars}`
     : t.test && !t.test[0] ? `the check is False, so the loop ends ${vars}`
     : `${t.inner && u ? `turn ${t.n}, inner turn ${u.n}` : `turn ${t.n}${isFor ? ` of ${turns}` : ''}`} ${vars}`;
   // the strip of turns (outer), and the inner strip for the current turn
@@ -483,7 +507,10 @@ function paintLoop(q) {
     const ends = x.test && !x.test[0], here = cur && i === cur.i;
     const cls = ends ? 'be' : cur && i <= cur.i ? 'b0' : 'bn';
     const label = ends ? 'stop' : isFor ? x.val.replace(/^'(.*)'$/, '$1') : x.n;
-    return `<i class="${cls}${here ? ' cur' : ''}" data-pos="${ends ? lastStep(i) + 1 : (here ? lastStep(i) : firstStep(i)) + 1}" title="turn ${x.n}">${few ? esc(String(label)) : ''}</i>`;
+    // a turn that hit continue or break is marked (once it has been reached)
+    const jk = x.jump && cur && i <= cur.i ? ` j-${x.jump.kind}` : '';
+    const tip = `turn ${x.n}${x.jump ? (x.jump.kind === 'break' ? ': break' : ': continue') : ''}`;
+    return `<i class="${cls}${jk}${here ? ' cur' : ''}" data-pos="${ends ? lastStep(i) + 1 : (here ? lastStep(i) : firstStep(i)) + 1}" title="${tip}">${few ? esc(String(label)) : ''}</i>`;
   }).join('')}${r.endless ? '<i class="berr" title="never ends">∞</i>' : ''}</div>`;
   const wrap = $('[data-lp-innerwrap]', host);
   if (t && t.inner && t.inner.turns.length) {
@@ -491,10 +518,22 @@ function paintLoop(q) {
     $('[data-lp-inner]', host).innerHTML = `<div class="cells">${t.inner.turns.map((x, j) => `<i class="${u && j < u.n ? 'b1' : 'bn'}${u && j === u.n - 1 ? ' cur' : ''}" data-pos="${firstStep(t.n - 1) + j + 1}" title="inner turn ${x.n}">${esc(String(x.val != null ? x.val.replace(/^'(.*)'$/, '$1') : x.n))}</i>`).join('')}</div>`;
   } else wrap.hidden = true;
   // light the box of the drawn list this turn is about (both loops, for a loop inside a loop)
+  const view = !lp.following ? null : !cur ? r.state0 : done ? r.state_end || (u || t).state : (u || t).state;
+  benchFromLoop(q, view, !cur ? 'before the loop starts' : done ? 'after the loop' : `after ${t.inner && u ? `turn ${t.n}, inner turn ${u.n}` : `turn ${t.n}`}`);
   if ($(`[data-row="${q.id}"]`)) {
     const idxs = cur && !done ? [t.idx, u && u.idx].filter(x => x != null) : [];
     applyHL(q, idxs.length ? { idxs } : null);
   }
+}
+/* The bench's boxes show the stepper's values (view = {name: {exists, value}}), or the >>> prompt's
+   own values again (view = null). The prompt's values stay in S[q.id].vals the whole time. */
+function benchFromLoop(q, view, when) {
+  const st = S[q.id], note = $(`#${q.id} [data-lp-bench]`);
+  if (!view) { if (note && !note.hidden) { note.hidden = true; q.vars.forEach(n => { renderRow(q, n, null); renderVal(q, n); }); } return; }
+  const keep = st.vals;
+  st.vals = { ...keep, ...view };
+  try { q.vars.forEach(n => { renderRow(q, n, null); renderVal(q, n); }); } finally { st.vals = keep; }
+  if (note) { note.hidden = false; note.textContent = `showing the loop: ${when}`; }
 }
 
 /* ---------- string template pictures (hw3): %s, {} with .format(), f-strings ----------
@@ -595,7 +634,7 @@ async function runFmt(q) {
   out.innerHTML = `<div class="fm-result">${filled}</div>`;
 }
 
-/* ---------- function machine (hw9) ----------
+/* ---------- function machine (functions draft) ----------
    q.fn = {functions: [{code: 'def name(params):\n    ...', args: [python literals]}]}.
    The def is shown as code; the student types a value per parameter, Python runs the real call,
    and the picture shows what the body printed and what the call returned (None when there is no
@@ -1201,7 +1240,8 @@ function cellSpecs(q) {
     if (c.prog) {
       const vals = c.values || q.probe.values;
       // a page without a probe can still use a code box: it runs once (values: ['']) and the variable is unused
-      return { kind: 'prog', input: cellText(q, k), want: vals.map(c.prog), var: q.probe ? q.probe.var : q.var, values: vals.map(pyLit) };
+      // cell.outOk(lines, input): the lesson judges the printed lines itself (any wording, same numbers)
+      return { kind: 'prog', input: cellText(q, k), want: c.outOk ? vals.map(() => null) : vals.map(c.prog), var: q.probe ? q.probe.var : q.var, values: vals.map(pyLit) };
     }
     // skip: the answer was typed in instead of reached through the variable (cell.free: the task has no variable, like 100//3)
     return { kind: c.stmt ? 'stmt' : 'expr', input, expect: c.expect || null, asserts: c.asserts || [], skip: !c.free && !!input && !varRe.test(input) };
@@ -1243,6 +1283,14 @@ function composeCell(q, t, k, r) {
     if (r.error && !r.v) return { state: 'fail', lines: [['err', r.error], ...notes] };
     const who = vals.length > 1 ? `When ${v} is ${r.v}, your code` : 'Your code';
     if (r.error) return { state: 'fail', lines: [['err', `✗ ${who} stops with an error:`], ['err', r.error], ...notes] };
+    if (r.state === 'ran' && c.outOk) {
+      if (c.start && input === c.start.trim()) return { state: 'empty', lines: [] };  // only the given first line: not tried yet
+      let v; try { v = c.outOk(r.printed || [], input); } catch (e) { v = false; }
+      const head = (r.printed || []).slice(0, 3).map(p => ['out', p]), more = r.n_got > 3 ? [['note', `… ${r.n_got - 3} more line${r.n_got - 3 === 1 ? '' : 's'}`]] : [];
+      if (v !== true) return { state: 'fail', lines: [...head, ...more, ['err', typeof v === 'string' ? '✗ ' + v : '✗ Not yet. Read the task again and compare.'], ...notes] };
+      if (c.must && !c.must[0].test(input)) return { state: 'fail', lines: [...head, ...more, ['note', c.must[1]]] };
+      return { state: 'pass', lines: [...head, ...more, ['ok', c.okMsg || `✓ it runs and prints ${r.n_got} line${r.n_got === 1 ? '' : 's'}`]] };
+    }
     if (r.assert_failed && r.at) {
       // several expected lines: name the first one that differs
       const where = r.n_got !== r.n_want && (r.got_line == null || r.want_line == null)

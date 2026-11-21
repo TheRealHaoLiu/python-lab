@@ -479,12 +479,24 @@ def _loop_depth(node):
     return 1 + max((_loop_depth(n) for n in ast.walk(node) if n is not node and isinstance(n, (ast.For, ast.While))), default=0)
 
 
+def _jumps(node):
+    """The break/continue lines that belong to this loop (not to a loop inside it)."""
+    found, todo = [], list(node.body)
+    while todo:
+        n = todo.pop()
+        if isinstance(n, (ast.Break, ast.Continue)):
+            found.append("break" if isinstance(n, ast.Break) else "continue")
+        elif not isinstance(n, (ast.For, ast.While, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            todo.extend(ast.iter_child_nodes(n))
+    return sorted(set(found))
+
+
 def _loop_info(node):
     """What a top-level for/while is made of, for grading: never the student's whole code."""
     if isinstance(node, ast.For):
-        return {"kind": "for", "target": ast.unparse(node.target), "iter": ast.unparse(node.iter), "depth": _loop_depth(node)}
+        return {"kind": "for", "target": ast.unparse(node.target), "iter": ast.unparse(node.iter), "depth": _loop_depth(node), "jumps": _jumps(node)}
     if isinstance(node, ast.While):
-        return {"kind": "while", "test": ast.unparse(node.test), "depth": _loop_depth(node)}
+        return {"kind": "while", "test": ast.unparse(node.test), "depth": _loop_depth(node), "jumps": _jumps(node)}
     return {"kind": type(node).__name__.lower()}
 
 
@@ -801,6 +813,9 @@ def _prog_cell(inp, s, ns):
         finally:
             INPUTS = None
         got = cap.lines()
+        if want is None:
+            # the lesson judges the lines itself (cell.outOk): any wording, same numbers
+            return {"state": "ran", "printed": got[:MAX_LINES], "n_got": len(got)}
         if isinstance(want, list):
             # one line per expected line, in order: name the first line that differs
             if len(got) != len(want) or any(_said([a]) != _said([b]) for a, b in zip(got, want)):
@@ -829,6 +844,7 @@ def peek(qid, expr, var, setup):
 # ---------- for / while pictures ----------
 
 LOOP_LIMIT = 60
+BENCH = []  # the variables the question's bench draws; trace() reports them after every turn
 
 
 def _watch(ns, vars):
@@ -852,10 +868,54 @@ def _box(node, ns, var, i=None):
     return None
 
 
+class _Jump(Exception):
+    """break or continue, raised by a body statement the picture runs on its own."""
+
+    def __init__(self, kind, line):
+        super().__init__(kind)
+        self.kind, self.line = kind, line
+
+
+class _Jumps(ast.NodeTransformer):
+    """A loop body runs one statement at a time, where a bare break/continue is a
+    SyntaxError, so this loop's own break/continue become `raise __jump(kind, line)`.
+    A loop inside the statement keeps its own."""
+
+    def _raise(self, node, kind):
+        call = ast.Call(func=ast.Name(id="__jump", ctx=ast.Load()),
+                        args=[ast.Constant(kind), ast.Constant(node.lineno)], keywords=[])
+        return ast.copy_location(ast.Raise(exc=call, cause=None), node)
+
+    def visit_Break(self, node):
+        return self._raise(node, "break")
+
+    def visit_Continue(self, node):
+        return self._raise(node, "continue")
+
+    def _keep(self, node):
+        return node
+    visit_For = visit_While = visit_AsyncFor = visit_FunctionDef = visit_AsyncFunctionDef = visit_ClassDef = visit_Lambda = _keep
+
+
+def _body_code(st):
+    tree = _Jumps().visit(ast.Module(body=[copy.deepcopy(st)], type_ignores=[]))
+    return compile(ast.fix_missing_locations(tree), "<loop>", "exec")
+
+
 def _run_body(body, ns, var, vars, limit, depth):
     """Run a loop body once, statement by statement. A loop inside it is traced too
-    (one level down), so the picture can step through the inner turns."""
-    out, inner, err = [], None, None
+    (one level down), so the picture can step through the inner turns.
+    jump: {kind: break|continue, line} when the turn ended early.
+    ran: the body lines that ran this turn (an if lights only the branch it took)."""
+    out, inner, err, jump, ran = [], None, None, None, set()
+
+    def lines(frame, event, arg):
+        if frame.f_code.co_filename != "<loop>":
+            return None
+        if event == "line":
+            ran.add(frame.f_lineno)
+        return lines
+    ns["__jump"] = _Jump
     for st in body:
         if isinstance(st, (ast.For, ast.While)) and depth < 2 and inner is None:
             inner = _trace_loop(st, ns, var, vars, limit, depth + 1)
@@ -863,13 +923,20 @@ def _run_body(body, ns, var, vars, limit, depth):
             if inner.get("error") or inner.get("endless"):
                 err = inner.get("error"); break
             continue
+        old = sys.gettrace()
         try:
             with Capture() as cap:
-                exec(compile(ast.Module(body=[st], type_ignores=[]), "<loop>", "exec"), ns)
+                sys.settrace(lines)
+                try:
+                    exec(_body_code(st), ns)
+                finally:
+                    sys.settrace(old)
             out += cap.lines()
+        except _Jump as j:
+            out += cap.lines(); jump = {"kind": j.kind, "line": j.line}; break
         except BaseException as e:  # noqa: BLE001
             out += cap.lines(); err = last_line(e); break
-    return out, inner, err
+    return out, inner, err, jump, sorted(ran)
 
 
 def _trace_loop(node, ns, var, vars, limit, depth=1):
@@ -893,13 +960,16 @@ def _trace_loop(node, ns, var, vars, limit, depth=1):
                 res["error"] = last_line(e); break
             val = ns[node.target.id] if isinstance(node.target, ast.Name) else item
             turn = {"n": i + 1, "val": repr(val), "idx": _box(node, ns, var, i)}
-            turn["out"], turn["inner"], err = _run_body(node.body, ns, var, vars, limit, depth)
+            turn["out"], turn["inner"], err, turn["jump"], turn["ran"] = _run_body(node.body, ns, var, vars, limit, depth)
             turn["vars"] = _watch(ns, vars)
+            turn["state"] = state(ns, BENCH)
             res["turns"].append(turn)
             if err:
                 res["error"] = err; break
+            if turn["jump"] and turn["jump"]["kind"] == "break":
+                res["broke"] = True; break
         ns.pop("__item", None)
-        res["truncated"] = len(items) > limit
+        res["truncated"] = len(items) > limit and not res.get("broke")
         return res
     test = compile(ast.Expression(node.test), "<loop>", "eval")
     for i in range(limit + 1):
@@ -909,23 +979,29 @@ def _trace_loop(node, ns, var, vars, limit, depth=1):
             res["error"] = last_line(e); break
         turn = {"n": i + 1, "test": [bool(got), None if isinstance(got, bool) else repr(got)], "idx": None, "out": [], "inner": None}
         if not got:
-            turn["vars"] = _watch(ns, vars); res["turns"].append(turn); break
+            turn["vars"] = _watch(ns, vars); turn["state"] = state(ns, BENCH); res["turns"].append(turn); break
         if i == limit:
             res["endless"] = True; break
         turn["idx"] = _box(node, ns, var)
-        turn["out"], turn["inner"], err = _run_body(node.body, ns, var, vars, limit, depth)
+        turn["out"], turn["inner"], err, turn["jump"], turn["ran"] = _run_body(node.body, ns, var, vars, limit, depth)
         turn["vars"] = _watch(ns, vars)
+        turn["state"] = state(ns, BENCH)
         res["turns"].append(turn)
         if err:
             res["error"] = err; break
+        if turn["jump"] and turn["jump"]["kind"] == "break":
+            res["broke"] = True; break
     return res
 
 
-def trace(src, var, setup=None, vars=None, limit=LOOP_LIMIT):
+def trace(src, var, setup=None, vars=None, limit=LOOP_LIMIT, bench=None):
     """For the picture: every turn of the first loop in src (and of a loop inside it):
     the loop variable, what the body printed, which box of var it touched, and the
     watched variables afterwards. A while loop still True after `limit` turns is reported
-    as endless instead of run forever."""
+    as endless instead of run forever. bench: the variables the page draws; each turn
+    carries their values (state), plus state0 before the loop and state_end after it."""
+    global BENCH
+    BENCH = list(bench or [])
     try:
         tree = ast.parse(src, "<loop>")
     except SyntaxError as e:
@@ -941,7 +1017,9 @@ def trace(src, var, setup=None, vars=None, limit=LOOP_LIMIT):
         before = cap.lines()
     except BaseException as e:  # noqa: BLE001
         return {"error": last_line(e)}
+    state0 = state(ns, BENCH)
     res = _trace_loop(tree.body[at], ns, var, vars or [], limit)
+    res["state0"] = state0
     res["before"] = before
     after = tree.body[at + 1:]
     res["after"] = [after[0].lineno, after[-1].end_lineno] if after else None
@@ -953,6 +1031,7 @@ def trace(src, var, setup=None, vars=None, limit=LOOP_LIMIT):
         except BaseException as e:  # noqa: BLE001
             res["after_error"] = last_line(e)
         res["after_out"] = cap.lines()
+    res["state_end"] = state(ns, BENCH)
     return res
 
 
