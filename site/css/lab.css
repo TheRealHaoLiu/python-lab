@@ -258,6 +258,7 @@ button.ix{cursor:pointer;text-decoration:underline dotted;text-underline-offset:
 .handin{background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:22px;display:grid;gap:14px}
 .handin h2{font-size:30px}
 .handin p{margin:0;max-width:68ch}
+.handin ol.steps{margin:0;padding-left:22px;display:grid;gap:4px;max-width:68ch}
 .field{display:grid;gap:6px;max-width:380px}
 .field label{font:600 13px var(--f-code);color:var(--muted)}
 .field input{font:17px var(--f-body);padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}

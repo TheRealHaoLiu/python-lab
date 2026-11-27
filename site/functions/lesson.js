@@ -1,184 +1,264 @@
-/* Lesson content: functions and modules (DRAFT, ahead of the homework that covers them).
-   Written before the teacher posted HW9, from the book's chapter 7 (Python for Kids: savings,
-   spaceship_building, variable scope, import time/random) in the shape of her other homeworks.
-   Swap the stories and wording for the real posting when it lands; keep the checks.
-   New picture: fn – {functions: [{code, args}]} (app.js buildFn). */
+/* Lesson content: Homework 10, functions and modules.
+   Built from the teacher's posting (Q1 function basics, Q2 functions with loops and modules, bonus
+   on default arguments). The function machines show look-alike functions, so they don't give the
+   answers away. Picture: fn – {functions: [{code, args}]} (app.js buildFn). */
 (function () {
   const has = (c, re) => re.test(c.code);
   const DEF = (name, params) => new RegExp(`^\\s*def\\s+${name}\\s*\\(\\s*${params}\\s*\\)\\s*:`, 'm');
   const CALL = (name, args) => new RegExp(`(^|[^\\w.])${name}\\s*\\(\\s*${args}\\s*\\)`, 'm');
-  const WEEKS = (cans, n) => { const out = []; for (let w = 1; w <= n; w++) out.push(`Week ${w} = ${w * cans}`); return out; };
-  const SAVINGS = "def savings(pocket_money, paper_route, spending):\n    return pocket_money + paper_route - spending";
-  const SHIP = "def spaceship_building(cans):\n    total_cans = 0\n    for week in range(1, 53):\n        total_cans = total_cans + cans\n        print('Week %s = %s' % (week, total_cans))";
+  // a call outside the def line itself (def fib(n): would otherwise count as calling fib(n))
+  const calls = (c, re) => re.test(c.code.split('\n').filter(l => !/^\s*def\s/.test(l)).join('\n'));
+  const count = (c, re) => (c.code.match(re) || []).length;
+  // the def block of one function (its def line and the indented lines under it), so one function's
+  // loop or return can't pass another function's task
+  const body = (c, name) => {
+    const lines = c.code.split('\n'), i = lines.findIndex(l => new RegExp(`^def\\s+${name}\\s*\\(`).test(l));
+    if (i < 0) return '';
+    const out = [lines[i]];
+    for (const l of lines.slice(i + 1)) { if (l.trim() && !/^\s/.test(l)) break; out.push(l); }
+    return out.join('\n');
+  };
+  const inDef = (c, name, re) => re.test(body(c, name));
+  // the first n Fibonacci numbers as Python prints the list (n >= 2, like the posting's aList = [0, 1])
+  const FIBS = n => { const a = [0, 1]; while (a.length < n) a.push(a[a.length - 1] + a[a.length - 2]); return '[' + a.join(', ') + ']'; };
+  const FIB7 = FIBS(7);
+  const SAVINGS = 'def savings(pocket_money, paper_route, spending):\n    return pocket_money + paper_route - spending';
+  const WAVE = "def wave(name):\n    print('Hi %s, welcome aboard!' % name)";
+  const TRIANGLE = 'def triangle_area(base, height):\n    return base * height / 2';
+  const SNACKS = 'def snack_total():\n    apples = 3\n    bananas = 4\n    return apples + bananas';
+  const DOUBLES = 'def doubles(n):\n    aList = [1]\n    while len(aList) < n:\n        aList.append(aList[-1] * 2)\n    return aList';
+  const SQUARES = 'def squares(n):\n    aList = []\n    for i in range(1, n + 1):\n        aList.append(i * i)\n    return aList';
+  const ORDER = "def order(food, drinks=1):\n    print('Order: %s, drinks: %s' % (food, drinks))";
+  const TIP = 'def tip(bill, percent=15):\n    return bill * percent / 100';
+  const MYSTERY = 'def mystery(x, y=2):\n    return x * y\n\nprint(mystery(5))\nprint(mystery(5, 3))\nprint(mystery(y=4, x=2))';
+  const WHY = 'answered (teacher grades this one)';
+  const IMPORT_RE = /module|toolbox|tool|library|function|bring|load|borrow|use|access/i;
+  const LOCAL_RE = /inside|within|in (a|the) function|only|local/i;
+  const DEFAULT_RE = /default|already|given|set|=\s*2/i;
 
   window.LESSON = {
-    id: 'functions',
-    title: 'Functions (draft)',
+    id: 'hw10',
+    title: 'Homework 10: Functions and Modules',
     questions: [
       {
-        id: 'q1', title: "Robot Chef's Recipes", var: 'who', vars: ['who'], setup: `who = 'Owen'\n\n${SAVINGS}\n\ndef wave(name):\n    print('Hi %s, welcome aboard!' % name)\n\ndef triangle_area(base, height):\n    return base * height / 2`,
+        id: 'q1', title: 'Function Basics', var: 'who', vars: ['who'],
+        setup: `who = 'Owen'\n\n${WAVE}\n\n${SAVINGS}\n\n${TRIANGLE}\n\n${SNACKS}`,
         init: () => 'Owen', probe: { var: 'who', values: ['Mary', 'Owen'] },
         cellSetup: "who = 'Owen'",  // the practice boxes must define the functions themselves
         fn: {
           functions: [
+            { code: WAVE, args: ["'Mary'"] },
             { code: SAVINGS, args: ['10', '10', '5'] },
-            { code: "def wave(name):\n    print('Hi %s, welcome aboard!' % name)", args: ["'Mary'"] },
-            { code: 'def triangle_area(base, height):\n    return base * height / 2', args: ['6', '4'] },
+            { code: TRIANGLE, args: ['6', '4'] },
+            { code: SNACKS, args: [] },
           ],
         },
         starter: `who = "Owen"
 
-# 1. Write a function greet(name) that prints "Hello, <name>!", then call it
-#    twice with two different names (one of them: greet(who)).
+# Part A: Writing Functions
+
+# 1. Write a function called greet that takes one parameter name and prints
+#    "Hello, [name]!". Call it once to see it work, for example greet(who).
 
 
-# 2. Write the savings function from class, with return, and print savings(10, 10, 5):
-#        def savings(pocket_money, paper_route, spending):
-#            return pocket_money + paper_route - spending
+# 2. Write a function called circle_area that takes one parameter r and returns
+#    the area of a circle using math.pi * r * r. Don't forget to import math first.
 
 
-# 3. A student writes:
-#        def add(a, b):
-#            total = a + b
-#        print(add(2, 3))
-#    What does it print? Why? Write your answer as comments below.
+# Part B: Parameters and Return Values
+
+# 3. Write a function called rectangle_area that takes parameters a and b and
+#    returns a * b.
 
 
-# 4. Rewrite the student's add function so that print(add(2, 3)) prints 5.
+# 4. Use your rectangle_area function to compute and print the area of a
+#    rectangle with sides 12 and 90.
 
 
-# 5. Write a function rectangle_area(length, width) that returns length times
-#    width. Print rectangle_area(3, 4) and rectangle_area(10, 2).
+# 5. What is the difference between a function that prints a value and a
+#    function that returns a value? Give one example of each from this
+#    homework. Write your answer as comments below.
+
+
+# Part C: Scope
+
+# 6. Look at this code:
+#        def variable_test():
+#            first_variable = 10
+#            second_variable = 20
+#            return first_variable * second_variable
+#
+#        print(variable_test())
+#        print(first_variable)
+#    What does this program print? What happens on the last line, and why?
+#    Write your answer as comments below.
+
+
+# 7. In your own words, what is a local variable? Write your answer as
+#    comments below.
 `,
         tasks: [
           {
-            pts: 10, text: 'Write a function <code>greet(name)</code> that prints <code>Hello, &lt;name&gt;!</code>, then call it twice with two different names.',
-            hint: 'A function is a recipe with a name. <code>def greet(name):</code> writes the recipe; the indented block is what it does; <code>greet("Mary")</code> cooks it. Nothing happens until you call it. Try <code>wave()</code> in the picture.',
-            cell: { prog: v => `Hello, ${v}!`, label: '# who is already set. Type the def, then one call: greet(who)', ph: 'def greet(name):\n    print(…)\ngreet(who)', must: [/\bdef\s+greet\s*\(/, 'That prints the right thing, but write it as a function called greet.'], anchor: '#    twice with two different names (one of them: greet(who)).' },
-            check: c => has(c, DEF('greet', '\\w+')) && (c.code.match(/^\s*greet\s*\(/gm) || []).length >= 2 && new Set(c.outputs.filter(l => /^Hello, .+!$/.test(l))).size >= 2,
+            pts: 10, text: 'Write a function called <code>greet</code> that takes one parameter <code>name</code> and prints <code>"Hello, [name]!"</code>.',
+            hint: 'A function is a recipe with a name. <code>def greet(name):</code> writes the recipe; the indented block is what it does; <code>greet("Mary")</code> runs it. Nothing happens until you call it. Try <code>wave()</code> in the picture: same shape, different words.',
+            cell: { prog: v => `Hello, ${v}!`, label: '# who is already set. Type the def, then one call: greet(who)', ph: 'def greet(name):\n    print(…)\ngreet(who)', must: [/\bdef\s+greet\s*\(/, 'That prints the right thing, but write it as a function called greet.'], anchor: '#    "Hello, [name]!". Call it once to see it work, for example greet(who).' },
+            check: c => has(c, DEF('greet', 'name')) && calls(c, CALL('greet', '[^)\\n]+')) && c.outputs.some(l => /^Hello, .+!$/.test(l)),
           },
           {
-            pts: 10, text: 'Write the <code>savings</code> function from class, with <code>return</code>, and print <code>savings(10, 10, 5)</code>.',
-            hint: '<code>return</code> hands a value back to whoever called. Step the picture: <code>savings(10, 10, 5)</code> prints nothing by itself, it <em>returns</em> 15, so you print the call.',
-            cell: { prog: () => '15', values: ['Owen'], label: '# Type the def with return, then print(savings(10, 10, 5)):', ph: 'def savings(pocket_money, paper_route, spending):\n    return …\nprint(savings(10, 10, 5))', must: [/\breturn\b/, 'Right number, but the function must return it.'], anchor: '#            return pocket_money + paper_route - spending' },
-            check: c => has(c, DEF('savings', '\\w+\\s*,\\s*\\w+\\s*,\\s*\\w+')) && has(c, /\breturn\b/) && c.printed('15') && has(c, CALL('savings', '10\\s*,\\s*10\\s*,\\s*5')),
+            pts: 10, text: 'Write a function called <code>circle_area</code> that takes one parameter <code>r</code> and <em>returns</em> the area of a circle using <code>math.pi * r * r</code>. Don\'t forget to <code>import math</code> first.',
+            hint: '<code>import math</code> goes at the top, once. Inside the function, <code>return</code> hands the area back. Compare <code>triangle_area()</code> in the picture: it returns, it doesn\'t print.',
+            cell: { prog: () => '12.566370614359172', values: ['Owen'], label: '# Type import math, the def, then print(circle_area(2)) to test it:', ph: 'import math\n\ndef circle_area(r):\n    return …\nprint(circle_area(2))', must: [/\breturn\b[^\n]*math\s*\.\s*pi/, 'Right number, but the function must return math.pi * r * r.'], traps: [[/^(?![\s\S]*import\s+math)/, 'Python only knows math after import math.']], anchor: "#    the area of a circle using math.pi * r * r. Don't forget to import math first." },
+            check: c => has(c, /^\s*import\s+math\b/m) && has(c, DEF('circle_area', 'r')) && inDef(c, 'circle_area', /\breturn\b[^\n]*math\s*\.\s*pi/),
           },
           {
-            pts: 10, text: 'A student writes:<pre>def add(a, b):\n    total = a + b\nprint(add(2, 3))</pre>What does it print? Why?',
-            hint: 'Run it below. The function works out the total and then keeps it to itself. What does a function give back when it has no <code>return</code>?',
-            cell: { why: true, tryCode: 'def add(a, b):\n    total = a + b\n\nprint(add(2, 3))', re: /none|return/i, label: '# What prints, and why?', ph: 'It prints … because …', whyHint: 'Name what prints, and say what is missing from the function.', anchor: '#    What does it print? Why? Write your answer as comments below.' },
-            check: c => { const n = c.notes(3); return /none/i.test(n) && /return/i.test(n); }, doneLabel: 'answered (teacher grades this one)',
+            pts: 5, text: 'Write a function called <code>rectangle_area</code> that takes parameters <code>a</code> and <code>b</code> and returns <code>a * b</code>.',
+            hint: 'Two parameters, one <code>return</code> line.',
+            cell: { prog: () => '12', values: ['Owen'], label: '# Type the def, then print(rectangle_area(3, 4)) to test it:', ph: 'def rectangle_area(a, b):\n    return …\nprint(rectangle_area(3, 4))', must: [/\breturn\b/, 'Right number, but the function must return the area.'], anchor: '#    returns a * b.' },
+            check: c => has(c, DEF('rectangle_area', 'a\\s*,\\s*b')) && inDef(c, 'rectangle_area', /return\s+(a\s*\*\s*b|b\s*\*\s*a)\b/),
           },
           {
-            pts: 5, text: "Rewrite the student's <code>add</code> function so that <code>print(add(2, 3))</code> prints <code>5</code>.",
-            hint: 'One word fixes it.',
-            cell: { prog: () => '5', values: ['Owen'], start: 'def add(a, b):\n    total = a + b\nprint(add(2, 3))', label: "# The student's code. Fix the function:", must: [/\breturn\b/, 'Right number, but fix the function rather than printing 5.'], anchor: '# 4. Rewrite the student\'s add function so that print(add(2, 3)) prints 5.' },
-            check: c => has(c, DEF('add', '\\w+\\s*,\\s*\\w+')) && has(c, /return\s+(total|a\s*\+\s*b)/) && c.printed('5') && has(c, CALL('add', '2\\s*,\\s*3')),
+            pts: 5, text: 'Use your <code>rectangle_area</code> function to compute and print the area of a rectangle with sides 12 and 90.',
+            hint: 'The function returns the area, so wrap the call in <code>print( )</code>.',
+            check: c => calls(c, CALL('rectangle_area', '12\\s*,\\s*90')) && c.printed('1080'),
           },
           {
-            pts: 15, text: 'Write a function <code>rectangle_area(length, width)</code> that <em>returns</em> length times width. Print <code>rectangle_area(3, 4)</code> and <code>rectangle_area(10, 2)</code>.',
-            hint: 'Two parameters, one <code>return</code>. Compare <code>triangle_area</code> in the picture: same shape, different maths.',
-            cell: { prog: () => ['12', '20'], values: ['Owen'], label: '# Type the def, then the two prints:', ph: 'def rectangle_area(length, width):\n    return …\nprint(rectangle_area(3, 4))\nprint(rectangle_area(10, 2))', must: [/\breturn\b/, 'Right numbers, but the function must return the area.'], anchor: '#    width. Print rectangle_area(3, 4) and rectangle_area(10, 2).' },
-            check: c => has(c, DEF('rectangle_area', '\\w+\\s*,\\s*\\w+')) && has(c, /\breturn\b/) && c.printed('12') && c.printed('20') && has(c, CALL('rectangle_area', '3\\s*,\\s*4')) && has(c, CALL('rectangle_area', '10\\s*,\\s*2')),
+            pts: 5, text: 'What is the difference between a function that <em>prints</em> a value and a function that <em>returns</em> a value? Give one example of each from this homework.',
+            hint: 'Press <code>print(wave(\'Mary\'))</code> in the picture. <code>wave</code> prints, but what does the call hand back? Then look at <code>savings</code>. Which of your functions works like each one?',
+            cell: { why: true, rows: 4, ok: s => s.length >= 15 && /print/i.test(s) && /return/i.test(s), label: '# Prints vs returns, with one example of each:', ph: 'A function that prints … A function that returns … For example, greet …', whyHint: 'Say what each kind does, and name one function from this homework for each.', anchor: '#    homework. Write your answer as comments below.' },
+            check: c => { const n = c.notes(5); return n.length >= 15 && /print/i.test(n) && /return/i.test(n); }, doneLabel: WHY,
+          },
+          {
+            pts: 10, text: 'Look at this code:<pre>def variable_test():\n    first_variable = 10\n    second_variable = 20\n    return first_variable * second_variable\n\nprint(variable_test())\nprint(first_variable)</pre>What does this program print? What happens on the last line, and why?',
+            hint: 'Write your guess, then run it. Try <code>snack_total()</code> in the picture and press <code>Try: print(apples)</code>. Where does <code>apples</code> live?',
+            cell: { why: true, rows: 4, tryCode: 'def variable_test():\n    first_variable = 10\n    second_variable = 20\n    return first_variable * second_variable\n\nprint(variable_test())\nprint(first_variable)', ok: s => s.length >= 15 && /200/.test(s) && /nameerror|not defined|error/i.test(s), label: '# What prints, what happens on the last line, and why?', ph: 'It prints … Then the last line gives … because first_variable …', whyHint: 'Say what the first print shows, name the error on the last line, and say where first_variable exists.', anchor: '#    Write your answer as comments below.' },
+            check: c => { const n = c.notes(6); return n.length >= 15 && /200/.test(n) && /nameerror|not defined|error/i.test(n); }, doneLabel: WHY,
+          },
+          {
+            pts: 5, text: 'In your own words, what is a <strong>local variable</strong>?',
+            hint: 'Think of <code>first_variable</code> and <code>apples</code>: where were they made, and when can you use them?',
+            cell: { why: true, ok: s => s.length >= 15 && LOCAL_RE.test(s), label: '# What is a local variable?', ph: 'A local variable is …', whyHint: 'Say where a local variable is made and where you can use it.', anchor: '#    comments below.' },
+            check: c => { const n = c.notes(7); return n.length >= 15 && LOCAL_RE.test(n); }, doneLabel: WHY,
           },
         ],
       },
       {
-        id: 'q2', title: 'Spaceship Cans', var: 'cans', vars: ['cans'], setup: `cans = 2\n\n${SHIP}\n\ndef pocket(weeks, allowance):\n    total = 0\n    for week in range(1, weeks + 1):\n        total = total + allowance\n    return total`,
-        init: () => 2, probe: { var: 'cans', values: [2, 13] },
-        cellSetup: 'cans = 2',
+        id: 'q2', title: 'Functions with Loops and Modules', var: 'n', vars: ['n'],
+        setup: `import math\nn = 7\n\n${DOUBLES}\n\n${SQUARES}\n\n${ORDER}`,
+        init: () => 7, probe: { var: 'n', values: [7, 10] },
+        cellSetup: 'n = 7',
         fn: {
           functions: [
-            { code: SHIP, args: ['2'] },
-            { code: 'def pocket(weeks, allowance):\n    total = 0\n    for week in range(1, weeks + 1):\n        total = total + allowance\n    return total', args: ['4', '5'] },
+            { code: DOUBLES, args: ['6'] },
+            { code: SQUARES, args: ['5'] },
+            { code: ORDER, args: ["'pizza'", '3'] },
           ],
         },
-        starter: `cans = 2
+        starter: `n = 7
 
-# 1. Write the spaceship_building function from class and call it with 2 cans a week:
-#        def spaceship_building(cans):
-#            total_cans = 0
-#            for week in range(1, 53):
-#                total_cans = total_cans + cans
-#                print('Week %s = %s' % (week, total_cans))
+# Part A: Fibonacci Functions
 
-
-# 2. Call it again with 13 cans a week.
+# 1. Write a function called fib that takes parameter n and returns a list of
+#    the first n Fibonacci numbers. Start with aList = [0, 1], then use a while
+#    loop to append the next number (the sum of the last two) until the list
+#    has n items.
 
 
-# 3. A student adds this line after the function, outside it:
-#        print(total_cans)
-#    What happens? Why? Write your answer as comments below.
+# 2. Write a function called fib2 that does the same thing but uses a for loop
+#    instead of a while loop. Start with aList = [0, 1], and if n < 2 just
+#    return aList.
 
 
-# 4. Write a new version, spaceship_building(cans, weeks), where the number of
-#    weeks is a parameter too. Call it with 2 cans for 5 weeks.
+# 3. Call both functions with n = 7 and print the results. Do they return the
+#    same list? Write your answer as a comment below.
 
 
-# 5. Write total_cans_after(cans, weeks) that returns the total instead of
-#    printing every week. Print total_cans_after(2, 52).
+# Part B: Default Arguments
+
+# 4. Write a function called ask_ok that takes a prompt and a default
+#    retries=4. The body can be simple: for example, just print the prompt and
+#    the number of retries. Call it twice: once with only the prompt, and once
+#    with retries=1.
+
+
+# Part C: Modules
+
+# 5. Using import math, write one line that prints the value of math.pi, and
+#    one line that prints the square root of 144 (math.sqrt(144)).
+
+
+# 6. In your own words, what does import math do, and why is it useful?
+#    Write your answer as comments below.
 `,
         tasks: [
           {
-            pts: 15, text: 'Write the <code>spaceship_building(cans)</code> function from class and call it with 2 cans a week.',
-            hint: 'The loop goes <em>inside</em> the function, indented under the def. Then one call line, not indented, makes it run. Press <code>spaceship_building()</code> in the picture.',
-            cell: { prog: v => WEEKS(v, 52), label: '# cans is already set. Type the def, then one call: spaceship_building(cans)', ph: 'def spaceship_building(cans):\n    total_cans = 0\n    for week in range(1, 53):\n        …\nspaceship_building(cans)', must: [/\bdef\s+spaceship_building\s*\(/, 'Right lines, but write it as the function spaceship_building.'], anchor: "#                print('Week %s = %s' % (week, total_cans))" },
-            check: c => has(c, DEF('spaceship_building', '\\w+')) && has(c, /range\s*\(\s*1\s*,\s*53\s*\)/) && has(c, CALL('spaceship_building', '2')) && c.printed('Week 1 = 2') && c.printed('Week 52 = 104'),
+            pts: 15, text: 'Write a function called <code>fib</code> that takes parameter <code>n</code> and returns a list of the first <code>n</code> Fibonacci numbers. Start with <code>aList = [0, 1]</code>, then use a <code>while</code> loop to append the next number (the sum of the last two) until the list has <code>n</code> items.',
+            hint: 'The last two items are <code>aList[-1]</code> and <code>aList[-2]</code>. <code>len(aList)</code> says how many items there are so far. <code>doubles()</code> in the picture grows a list with a while loop the same way, but it doubles instead of adding.',
+            cell: { prog: v => FIBS(v), label: '# n is already set. Type the def, then: print(fib(n))', ph: 'def fib(n):\n    aList = [0, 1]\n    while …:\n        …\n    return aList\nprint(fib(n))', must: [/\bwhile\b/, 'Right list, but this one must use a while loop.'], anchor: '#    has n items.' },
+            check: c => has(c, DEF('fib', 'n')) && ['aList\\s*=\\s*\\[\\s*0\\s*,\\s*1\\s*\\]', '\\bwhile\\b', '\\.append\\s*\\(', '\\breturn\\b'].every(re => inDef(c, 'fib', new RegExp(re))),
           },
           {
-            pts: 5, text: 'Call it again with 13 cans a week.',
-            hint: 'Same recipe, different ingredient: one more call line.',
-            check: c => has(c, CALL('spaceship_building', '13')) && c.printed('Week 52 = 676'),
+            pts: 10, text: 'Write a function called <code>fib2</code> that does the same thing but uses a <code>for</code> loop instead of a <code>while</code> loop. Start with <code>aList = [0, 1]</code>, and if <code>n &lt; 2</code> just return <code>aList</code>.',
+            hint: 'The list already has 2 items, so the loop needs to add <code>n - 2</code> more: <code>range(2, n)</code>. <code>squares()</code> in the picture builds a list with a for loop.',
+            cell: { prog: v => FIBS(v), label: '# n is already set. Type the def, then: print(fib2(n))', ph: 'def fib2(n):\n    aList = [0, 1]\n    if n < 2:\n        return aList\n    for i in range(…):\n        …\n    return aList\nprint(fib2(n))', must: [/\bfor\b/, 'Right list, but this one must use a for loop.'], traps: [[/\bwhile\b/, 'fib2 is the for-loop version: no while here.']], anchor: '#    return aList.' },
+            check: c => has(c, DEF('fib2', 'n')) && ['aList\\s*=\\s*\\[\\s*0\\s*,\\s*1\\s*\\]', '\\bfor\\b', 'if\\s+n\\s*<\\s*2\\s*:', '\\.append\\s*\\(', '\\breturn\\b'].every(re => inDef(c, 'fib2', new RegExp(re))) && !inDef(c, 'fib2', /\bwhile\b/),
           },
           {
-            pts: 10, text: 'A student adds <code>print(total_cans)</code> after the function, outside it. What happens? Why?',
-            hint: 'Run it below. <code>total_cans</code> is made inside the function and lives only while the function runs. Try <code>print(total_cans)</code> at the picture’s <code>&gt;&gt;&gt;</code> prompt after a call.',
-            cell: { why: true, tryCode: 'def spaceship_building(cans):\n    total_cans = 0\n    for week in range(1, 53):\n        total_cans = total_cans + cans\n\nspaceship_building(2)\nprint(total_cans)', re: /nameerror|inside|local|scope|outside|not defined|only in|disappear|gone/i, label: '# What happens, and why?', ph: 'Python gives a … because total_cans …', whyHint: 'Name the error, and say where total_cans exists and where it does not.', anchor: '#    What happens? Why? Write your answer as comments below.' },
-            check: c => { const n = c.notes(3); return n.length >= 15 && /nameerror|not defined|error/i.test(n) && /inside|local|scope|outside|only|function/i.test(n); }, doneLabel: 'answered (teacher grades this one)',
+            pts: 5, text: 'Call both functions with <code>n = 7</code> and print the results. Do they return the same list?',
+            hint: `Two print lines. Both should show <code>${FIB7}</code>. For the question, write a comment, or print <code>fib(7) == fib2(7)</code>.`,
+            check: c => calls(c, CALL('fib', '(7|n)')) && calls(c, CALL('fib2', '(7|n)')) && c.outputs.filter(l => l === FIB7).length >= 2 && (/yes|same|equal/i.test(c.notes(3)) || c.printed('True')),
           },
           {
-            pts: 10, text: 'Write a new version, <code>spaceship_building(cans, weeks)</code>, where the number of weeks is a parameter too. Call it with 2 cans for 5 weeks.',
-            hint: 'The loop needs <code>range(1, weeks + 1)</code> so that <code>weeks</code> is the last week printed. Compare <code>pocket()</code> in the picture.',
-            cell: { prog: v => WEEKS(v, 5), label: '# cans is already set. Type the two-parameter def, then: spaceship_building(cans, 5)', ph: 'def spaceship_building(cans, weeks):\n    …\nspaceship_building(cans, 5)', must: [/\bweeks\b/, 'Right lines, but the number of weeks must be a parameter called weeks.'], anchor: '#    weeks is a parameter too. Call it with 2 cans for 5 weeks.' },
-            check: c => has(c, DEF('spaceship_building', '\\w+\\s*,\\s*weeks')) && has(c, /range\s*\(\s*1\s*,\s*weeks\s*\+\s*1\s*\)/) && has(c, CALL('spaceship_building', '2\\s*,\\s*5')) && c.printed('Week 5 = 10'),
+            pts: 10, text: 'Write a function called <code>ask_ok</code> that takes a <code>prompt</code> and a default <code>retries=4</code>. The body can be simple: for example, just print the prompt and the number of retries. Call it twice: once with only the prompt, and once with <code>retries=1</code>.',
+            hint: 'A default goes in the def line: <code>def ask_ok(prompt, retries=4):</code>. Press <code>order(\'pizza\')</code> and <code>order(\'pizza\', drinks=3)</code> in the picture to see a default at work.',
+            cell: { prog: () => null, values: [7], outOk: lines => lines.length < 2 ? 'Call it twice, so it prints at least two lines.' : !lines.some(l => /\b4\b/.test(l)) ? 'The call with only the prompt should show retries as 4.' : !lines.some(l => /\b1\b/.test(l)) ? 'The second call should show retries as 1.' : true, label: '# Type the def with retries=4, then the two calls:', ph: "def ask_ok(prompt, retries=4):\n    print(…)\nask_ok('Do you really want to quit?')\nask_ok('Do you really want to quit?', retries=1)", must: [/\bdef\s+ask_ok\s*\(\s*\w+\s*,\s*retries\s*=\s*4\s*\)/, 'It prints, but the def line must give retries a default of 4.'], okMsg: '✓ two calls, one default', anchor: '#    with retries=1.' },
+            check: c => has(c, DEF('ask_ok', '\\w+\\s*,\\s*retries\\s*=\\s*4')) && count(c, /^\s*ask_ok\s*\(/gm) >= 2 && has(c, /^\s*ask_ok\s*\([^)\n]*retries\s*=\s*1\s*\)/m) && has(c, /^\s*ask_ok\s*\([^,)\n]+\)/m),
           },
           {
-            pts: 10, text: 'Write <code>total_cans_after(cans, weeks)</code> that <em>returns</em> the total instead of printing every week. Print <code>total_cans_after(2, 52)</code>.',
-            hint: 'Same loop, but no print inside: after the loop, <code>return total_cans</code>. Then print the call. <code>pocket()</code> in the picture is this shape.',
-            cell: { prog: v => String(v * 52), label: '# cans is already set. Type the def, then: print(total_cans_after(cans, 52))', ph: 'def total_cans_after(cans, weeks):\n    …\n    return …\nprint(total_cans_after(cans, 52))', must: [/\breturn\b/, 'Right number, but the function must return it.'], anchor: '#    printing every week. Print total_cans_after(2, 52).' },
-            check: c => has(c, DEF('total_cans_after', '\\w+\\s*,\\s*\\w+')) && has(c, /\breturn\b/) && has(c, CALL('total_cans_after', '2\\s*,\\s*52')) && c.printed('104'),
+            pts: 5, text: 'Using <code>import math</code>, write one line that prints the value of <code>math.pi</code>, and one line that prints the square root of 144 (<code>math.sqrt(144)</code>).',
+            hint: 'Press <code>math.sqrt(81)</code> in the picture. The dot means “the sqrt tool from the math toolbox”.',
+            cell: { prog: () => ['3.141592653589793', '12.0'], values: [7], label: '# Type import math, then the two print lines:', ph: 'import math\nprint(…)\nprint(…)', must: [/math\s*\.\s*sqrt\s*\(\s*144\s*\)/, 'Right numbers, but use math.sqrt(144) for the square root.'], anchor: '#    one line that prints the square root of 144 (math.sqrt(144)).' },
+            check: c => has(c, /^\s*import\s+math\b/m) && has(c, /print\s*\(\s*math\s*\.\s*pi\s*\)/) && has(c, /math\s*\.\s*sqrt\s*\(\s*144\s*\)/) && c.printed('3.141592653589793') && c.printed('12.0'),
+          },
+          {
+            pts: 5, text: 'In your own words, what does <code>import math</code> do, and why is it useful?',
+            hint: 'Think of a toolbox someone else packed. What does the line bring in, and what can you do after it that you couldn\'t before? Press <code>Try: sqrt(81)</code> in the picture.',
+            cell: { why: true, ok: s => s.length >= 15 && IMPORT_RE.test(s), label: '# What does import math do, and why is it useful?', ph: 'import math … so that …', whyHint: 'Say what import math brings in and what that lets your script do.', anchor: '#    Write your answer as comments below.' },
+            check: c => { const n = c.notes(6); return n.length >= 15 && IMPORT_RE.test(n); }, doneLabel: WHY,
           },
         ],
       },
       {
-        id: 'q3', title: 'Borrowing Tools: Modules', bonus: true, var: 'sides', vars: ['sides'], setup: 'import random\nimport time\nsides = 6\n\ndef roll_dice(sides):\n    return random.randint(1, sides)',
-        init: () => 6, cellSetup: 'import random\nimport time\nsides = 6',
-        fn: { functions: [{ code: 'def roll_dice(sides):\n    return random.randint(1, sides)', args: ['6'] }] },
-        starter: `# 1. Import the time module and print the date and time with time.asctime()
+        id: 'q3', title: 'Bonus Challenge', bonus: true, var: 'bill', vars: ['bill'],
+        setup: `bill = 40\n\n${TIP}`,
+        init: () => 40, cellSetup: 'bill = 40',
+        fn: { functions: [{ code: TIP, args: ['40', '20'] }] },
+        starter: `# A student writes this function:
+#     def mystery(x, y=2):
+#         return x * y
+#     print(mystery(5))
+#     print(mystery(5, 3))
+#     print(mystery(y=4, x=2))
+
+# 1. What does each print display? List all three outputs in order.
+#    Write your answer as comments below.
 
 
-# 2. Import the random module. Write a function roll() that returns
-#    random.randint(1, 6), and print roll() three times.
-
-
-# 3. In your own words: what does import do? Write your answer as comments below.
+# 2. Explain why mystery(5) works even though the function has two
+#    parameters. What is y equal to in that call? Write your answer as
+#    comments below.
 `,
         tasks: [
           {
-            pts: 3, text: 'Import the <code>time</code> module and print the date and time with <code>time.asctime()</code>.',
-            hint: 'Two lines: <code>import time</code>, then <code>print(time.asctime())</code>. The dot means “the asctime tool from the time toolbox”.',
-            check: c => has(c, /^\s*import\s+time\b/m) && has(c, /time\s*\.\s*asctime\s*\(\s*\)/) && c.outputs.some(l => /^\w{3} \w{3} +\d+ \d\d:\d\d:\d\d \d{4}$/.test(l)),
+            pts: 5, text: `A student writes this function:<pre>${MYSTERY}</pre>What does each print display? List all three outputs in order.`,
+            hint: 'Work out each call before you run it. When a value is missing, Python uses the default from the def line. Named arguments (<code>y=4, x=2</code>) can come in any order.',
+            cell: { why: true, rows: 2, tryCode: MYSTERY, ok: s => /\b10\b\D+\b15\b\D+\b8\b/.test(s), label: '# Your guess first: the three outputs, in order', ph: '…, …, …', okMsg: '✓ that\'s it. Run it below to see.', whyHint: 'Not quite. Work out x * y for each call, using y = 2 when y is missing. Then run it below to check.', anchor: '#    Write your answer as comments below.' },
+            check: c => /\b10\b\D+\b15\b\D+\b8\b/.test(c.notes(1)) || c.outputs.join(' ').includes('10 15 8'),
           },
           {
-            pts: 4, text: 'Import the <code>random</code> module. Write a function <code>roll()</code> that returns <code>random.randint(1, 6)</code>, and print <code>roll()</code> three times.',
-            hint: 'Press <code>roll_dice()</code> in the picture a few times: a different number each time. <code>roll()</code> takes no parameters, so its parentheses stay empty.',
-            check: c => has(c, /^\s*import\s+random\b/m) && has(c, DEF('roll', '')) && has(c, /random\s*\.\s*randint\s*\(\s*1\s*,\s*6\s*\)/) && (c.code.match(/print\s*\(\s*roll\s*\(\s*\)\s*\)/g) || []).length >= 3 && c.outputs.filter(l => /^[1-6]$/.test(l)).length >= 3,
-          },
-          {
-            pts: 3, text: 'In your own words: what does <code>import</code> do?',
-            hint: 'Think of a toolbox someone else packed. What does the line fetch, and what can you do after it?',
-            cell: { why: true, re: /module|toolbox|tool|library|code|function|use|bring|load|borrow|get/i, label: '# What does import do?', ph: 'import … so that …', whyHint: 'Say what import brings in and what that lets your script do.' },
-            check: c => { const n = c.notes(3); return n.length >= 15 && /module|toolbox|tool|library|code|function|use|bring|load|borrow|get/i.test(n); }, doneLabel: 'answered (teacher grades this one)',
+            pts: 5, text: 'Explain why <code>mystery(5)</code> works even though the function has two parameters. What is <code>y</code> equal to in that call?',
+            hint: 'Press <code>tip(40)</code> in the picture. Which value did <code>percent</code> get, and where did it come from?',
+            cell: { why: true, ok: s => s.length >= 15 && /\b2\b|two/i.test(s) && DEFAULT_RE.test(s), label: '# Why does mystery(5) work, and what is y?', ph: 'It works because … so y is …', whyHint: 'Say what y is in that call and where Python got that value.', anchor: '#    comments below.' },
+            check: c => { const n = c.notes(2); return n.length >= 15 && /\b2\b|two/i.test(n) && DEFAULT_RE.test(n); }, doneLabel: WHY,
           },
         ],
       },

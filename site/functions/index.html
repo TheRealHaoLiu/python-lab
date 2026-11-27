@@ -7,8 +7,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src blob:; connect-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Functions (draft)</title>
-<meta name="description" content="Python practice on functions and modules: def, parameters, return, variable scope, import; a function machine you can feed arguments, and real Python in the browser.">
+<title>Homework 10 · Functions and Modules</title>
+<meta name="description" content="Homework 10, functions and modules: def, parameters, return, scope, Fibonacci with while and for, default arguments, import math; a function machine you can feed arguments, and real Python in the browser.">
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,33 +18,37 @@
 <body>
 <div class="wrap">
   <header class="hero">
-    <div class="eyebrow"><a href="../">Python Lab</a> · Functions · draft</div>
-    <h1><span class="fn">Functions</span> Lab</h1>
-    <p class="lede">A function is a recipe with a name. <code>def</code> writes the recipe once; calling it by name cooks it, as many times as you like, with different ingredients each time. <code>return</code> hands the result back. And <code>import</code> borrows a whole toolbox of functions someone else wrote.</p>
+    <div class="eyebrow"><a href="../">Python Lab</a> · Homework 10</div>
+    <h1><span class="fn">Functions</span> and Modules</h1>
+    <p class="lede">A function is a recipe with a name. <code>def</code> writes the recipe once; calling it by name runs it, as many times as you like, with different ingredients each time. <code>return</code> hands the result back. And <code>import math</code> borrows a whole toolbox of functions someone else wrote.</p>
     <div class="idea">
       <div class="kind-card is-fn">
         <h3><span class="glyph">def</span> Write it, then call it</h3>
-        <div class="demo pre">def greet(name):
-    print("Hello, " + name)
-
-greet("Mary")
-greet("Owen")</div>
-        <ul>
-          <li><code>name</code> is a <strong>parameter</strong>: a label for whatever you pass in.</li>
-          <li>The indented block runs only when you <strong>call</strong> <code>greet(…)</code>.</li>
-          <li>Two calls, two hellos. One recipe.</li>
-        </ul>
-      </div>
-      <div class="kind-card is-fn">
-        <h3><span class="glyph">↩</span> return, scope, import</h3>
         <div class="demo pre">def double(n):
     return n * 2
 
-print(double(21))</div>
+print(double(21))
+print(double(5))</div>
         <ul>
-          <li><code>return</code> hands a value back. No <code>return</code>: the call gives <code>None</code>.</li>
-          <li>A variable made inside a function lives only inside it.</li>
-          <li><code>import time</code> borrows a toolbox; <code>time.asctime()</code> uses one tool from it.</li>
+          <li><code>n</code> is a <strong>parameter</strong>: a label for whatever you pass in.</li>
+          <li>The indented block runs only when you <strong>call</strong> <code>double(…)</code>.</li>
+          <li><code>return</code> hands a value back. A function that only prints hands back <code>None</code>.</li>
+        </ul>
+      </div>
+      <div class="kind-card is-fn">
+        <h3><span class="glyph">=</span> Scope, defaults, import</h3>
+        <div class="demo pre">import math
+
+def greet_all(times=1):
+    print("Hi! " * times)
+
+greet_all()
+greet_all(3)
+print(math.sqrt(81))</div>
+        <ul>
+          <li>A variable made inside a function is <strong>local</strong>: it lives only inside it.</li>
+          <li><code>times=1</code> is a <strong>default</strong>: used when the call leaves it out.</li>
+          <li><code>import math</code> opens a toolbox; <code>math.sqrt()</code> uses one tool from it.</li>
         </ul>
       </div>
     </div>
@@ -52,7 +56,7 @@ print(double(21))</div>
       <li><b>1</b> Feed the function machine different values and watch what comes back.</li>
       <li><b>2</b> Try each task in its check box until you get ✓.</li>
       <li><b>3</b> Write the real answers in <code>homework.py</code> and press Run.</li>
-      <li><b>4</b> Hand in your report at the bottom.</li>
+      <li><b>4</b> Download your homework at the bottom and upload it to Google Classroom.</li>
     </ol>
     <div class="py-status" data-py-status data-state="loading">Starting Python…</div>
     <div class="scoreboard" id="scoreboard"></div>
@@ -60,88 +64,101 @@ print(double(21))</div>
 
   <!-- Q1 -->
   <section class="q" id="q1" data-kind="fn">
-    <div class="q-head"><span class="q-num">Q1</span><h2>Robot Chef's Recipes</h2><span class="q-pts" data-pts="q1"></span></div>
-    <p class="story">A robot chef only knows recipes it has been taught. Teach it a few: one that says hello, one that counts savings, one that measures a rectangle.</p>
+    <div class="q-head"><span class="q-num">Q1</span><h2>Function Basics 🧩</h2><span class="q-pts" data-pts="q1"></span></div>
+    <p class="story">Part A: write two functions. Part B: parameters and return values. Part C: scope, where a function's own variables live.</p>
     <div class="bench">
       <div class="bench-top"><span class="label">Explore</span><span class="badge">the function machine</span></div>
       <div class="fnpic" data-fn="q1"></div>
       <div class="controls">
-        <button type="button" class="btn" data-run="q1" data-code="savings(10, 10, 5)">savings(10, 10, 5)</button>
-        <button type="button" class="btn" data-run="q1" data-code="savings(20, 0, 5)">savings(20, 0, 5)</button>
         <button type="button" class="btn" data-run="q1" data-code="wave('Mary')">wave('Mary')</button>
-        <button type="button" class="btn" data-run="q1" data-code="wave('Owen')">wave('Owen')</button>
-        <button type="button" class="btn warn" data-run="q1" data-code="savings(10, 10)">Try: savings(10, 10)</button>
+        <button type="button" class="btn" data-run="q1" data-code="savings(10, 10, 5)">savings(10, 10, 5)</button>
+        <button type="button" class="btn" data-run="q1" data-code="print(savings(20, 0, 5))">print(savings(20, 0, 5))</button>
+        <button type="button" class="btn" data-run="q1" data-code="snack_total()">snack_total()</button>
         <button type="button" class="btn warn" data-run="q1" data-code="print(wave('Mary'))">Try: print(wave('Mary'))</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="print(apples)">Try: print(apples)</button>
+        <button type="button" class="btn warn" data-run="q1" data-code="savings(10, 10)">Try: savings(10, 10)</button>
         <button type="button" class="btn ghost" data-reset="q1">Reset picture</button>
       </div>
-      <p class="tip">Same recipe, different name, different hello. Three parameters need three arguments: <code>savings(10, 10)</code> is a <strong>TypeError</strong>. And <code>wave()</code> prints but returns nothing, so <code>print(wave('Mary'))</code> shows the hello and then <code>None</code>.</p>
-      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: triangle_area(10, 3)" data-label="Python shell for the recipes"></div></div></div>
+      <p class="tip"><code>wave()</code> prints but returns nothing, so <code>print(wave('Mary'))</code> shows the hello and then <code>None</code>. <code>apples</code> is made inside <code>snack_total()</code>, so outside it Python has never heard of it: <strong>NameError</strong>. And three parameters need three arguments: <code>savings(10, 10)</code> is a <strong>TypeError</strong>.</p>
+      <div class="shell"><div class="shell-log" data-log="q1" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q1" data-ph="try: triangle_area(10, 3)" data-label="Python shell for function basics"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q1"></ol><div data-editor="q1"></div></div>
   </section>
 
   <!-- Q2 -->
   <section class="q" id="q2" data-kind="fn">
-    <div class="q-head"><span class="q-num">Q2</span><h2>Spaceship Cans</h2><span class="q-pts" data-pts="q2"></span></div>
-    <p class="story">You are collecting drink cans to build a spaceship. A function can run the whole year's count for any number of cans a week, and parameters let you change the plan without rewriting the loop.</p>
+    <div class="q-head"><span class="q-num">Q2</span><h2>Functions with Loops and Modules 🔁📦</h2><span class="q-pts" data-pts="q2"></span></div>
+    <p class="story">Part A: Fibonacci twice, once with a while loop and once with a for loop. Part B: default arguments. Part C: the math module.</p>
     <div class="bench">
-      <div class="bench-top"><span class="label">Explore</span><span class="badge">a loop inside a function</span></div>
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">loops inside functions, defaults, import math</span></div>
       <div class="fnpic" data-fn="q2"></div>
       <div class="controls">
-        <button type="button" class="btn" data-run="q2" data-code="pocket(4, 5)">pocket(4, 5)</button>
-        <button type="button" class="btn" data-run="q2" data-code="pocket(52, 2)">pocket(52, 2)</button>
-        <button type="button" class="btn warn" data-run="q2" data-code="print(total)">Try: print(total)</button>
-        <button type="button" class="btn warn" data-run="q2" data-code="print(week)">Try: print(week)</button>
+        <button type="button" class="btn" data-run="q2" data-code="doubles(6)">doubles(6)</button>
+        <button type="button" class="btn" data-run="q2" data-code="squares(5)">squares(5)</button>
+        <button type="button" class="btn" data-run="q2" data-code="order('pizza')">order('pizza')</button>
+        <button type="button" class="btn" data-run="q2" data-code="order('pizza', drinks=3)">order('pizza', drinks=3)</button>
+        <button type="button" class="btn" data-run="q2" data-code="math.sqrt(81)">math.sqrt(81)</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="order()">Try: order()</button>
+        <button type="button" class="btn warn" data-run="q2" data-code="sqrt(81)">Try: sqrt(81)</button>
         <button type="button" class="btn ghost" data-reset="q2">Reset picture</button>
       </div>
-      <p class="tip"><code>total</code> and <code>week</code> are made inside <code>pocket()</code>. After the call they are gone: <strong>NameError</strong>. That is scope: a function's own variables live only while it runs. The value escapes only through <code>return</code>.</p>
-      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: pocket(2, 100)" data-label="Python shell for the can functions"></div></div></div>
+      <p class="tip"><code>drinks=1</code> is a default, so <code>order('pizza')</code> still works; <code>food</code> has no default, so <code>order()</code> is a <strong>TypeError</strong>. Without the toolbox name in front, <code>sqrt(81)</code> is a <strong>NameError</strong>: Python only knows it as <code>math.sqrt</code>.</p>
+      <div class="shell"><div class="shell-log" data-log="q2" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q2" data-ph="try: doubles(10)" data-label="Python shell for loops and modules"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q2"></ol><div data-editor="q2"></div></div>
   </section>
 
   <!-- Q3 -->
   <section class="q" id="q3" data-kind="fn">
-    <div class="q-head"><span class="q-num">Q3</span><h2>Borrowing Tools: Modules</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
-    <p class="story">Python comes with toolboxes called <strong>modules</strong>. <code>import</code> opens one; then <code>module.tool()</code> uses a tool from it. Two to try: <code>time</code> for the clock, <code>random</code> for dice.</p>
+    <div class="q-head"><span class="q-num">Q3</span><h2>Bonus Challenge 🎁</h2><span class="bonus">Bonus</span><span class="q-pts" data-pts="q3"></span></div>
+    <p class="story">A function with a default argument, called three different ways. Work out each answer before you run it.</p>
     <div class="bench">
-      <div class="bench-top"><span class="label">Explore</span><span class="badge">import time, import random</span></div>
+      <div class="bench-top"><span class="label">Explore</span><span class="badge">default and named arguments</span></div>
       <div class="fnpic" data-fn="q3"></div>
       <div class="controls">
-        <button type="button" class="btn" data-run="q3" data-code="time.asctime()">time.asctime()</button>
-        <button type="button" class="btn" data-run="q3" data-code="random.randint(1, 6)">random.randint(1, 6)</button>
-        <button type="button" class="btn" data-run="q3" data-code="roll_dice(20)">roll_dice(20)</button>
-        <button type="button" class="btn warn" data-run="q3" data-code="asctime()">Try: asctime()</button>
+        <button type="button" class="btn" data-run="q3" data-code="tip(40)">tip(40)</button>
+        <button type="button" class="btn" data-run="q3" data-code="tip(40, 20)">tip(40, 20)</button>
+        <button type="button" class="btn" data-run="q3" data-code="tip(percent=10, bill=50)">tip(percent=10, bill=50)</button>
         <button type="button" class="btn ghost" data-reset="q3">Reset picture</button>
       </div>
-      <p class="tip">Press <code>random.randint(1, 6)</code> a few times: a different number each time, that is the point. Without the toolbox name in front, <code>asctime()</code> is a <strong>NameError</strong>: Python only knows it as <code>time.asctime</code>.</p>
-      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: random.randint(1, 100)" data-label="Python shell for modules"></div></div></div>
+      <p class="tip">Leave <code>percent</code> out and the default is used. Name the arguments and the order no longer matters.</p>
+      <div class="shell"><div class="shell-log" data-log="q3" aria-live="polite"></div><div class="shell-in"><span>&gt;&gt;&gt;</span><div class="shell-cm" data-shell="q3" data-ph="try: tip(100)" data-label="Python shell for the bonus"></div></div></div>
     </div>
     <div class="work"><ol class="tasks" data-tasks="q3"></ol><div data-editor="q3"></div></div>
   </section>
 
   <section class="handin" id="handin">
     <h2>Hand in</h2>
-    <p>This makes one report for your teacher: your score, every check, your three scripts and what they printed. It re-runs your scripts first, so you get the latest results.</p>
+    <p>Save your results and upload your Python script to Google Classroom. One file holds both: your score, every check, your three scripts and what they printed. It re-runs your scripts first, so you get the latest results.</p>
+    <ol class="steps">
+      <li>Type your name below.</li>
+      <li>Press <strong>Download homework.py</strong>.</li>
+      <li>In Google Classroom, open Homework 10, choose <em>Add or create</em> under <em>Your work</em>, pick <em>File</em>, upload the file you downloaded, then press <em>Turn in</em>.</li>
+    </ol>
     <div class="field"><label for="student-name">Your name</label><input id="student-name" autocomplete="name" placeholder="First and last name"></div>
     <div class="handin-actions">
-      <button type="button" class="btn big" id="dl-report">Download report (.txt)</button>
+      <button type="button" class="btn big" id="dl-report" data-ext="py">Download homework.py</button>
       <button type="button" class="btn big" id="copy-report">Copy report</button>
     </div>
     <p class="msg" id="report-msg" hidden></p>
-    <p class="tip">In Google Classroom: open the assignment, then attach the downloaded file under <em>Your work</em>, or paste the copied report into a private comment or a Google Doc.</p>
-    <details id="preview-report"><summary>Preview the report</summary><pre class="report" id="report-pre"></pre></details>
+    <p class="tip">If uploading doesn't work, press <em>Copy report</em> and paste it into a private comment on the assignment.</p>
+    <details id="preview-report"><summary>Preview the file</summary><pre class="report" id="report-pre"></pre></details>
   </section>
 
   <section class="teacher" id="teacher">
     <h2>For the teacher</h2>
-    <p><strong>This page is a draft written ahead of the homework on functions.</strong> It follows the book's chapter on functions and modules (<code>savings</code>, <code>spaceship_building</code>, variable scope, <code>import time</code> and <code>random</code>) in the same shape as the earlier homeworks. When the real assignment is posted, the stories and wording are swapped for yours.</p>
+    <p>This page follows the Homework 10 posting: Q1 function basics (Parts A to C), Q2 functions with loops and modules (Parts A to C), and the bonus on default arguments, at the posted points.</p>
     <p>Everything students type runs in real Python 3.12 (CPython compiled for the browser, called Pyodide). Nothing is installed and nothing is sent to a server: the code runs on the student's own computer.</p>
     <ul>
-      <li><strong>How functions are graded.</strong> The page looks for the <code>def</code> line with the right name and number of parameters, a <code>return</code> where one is asked for, the calls the task names, and what the script printed. The practice boxes run the student's function with a second argument (another name, 13 cans a week) so that printed-by-hand answers don't pass.</li>
-      <li>Written answers (Q1 task 3, Q2 task 3, bonus task 3) are for you to grade; the page checks only that the key idea is there (<code>None</code> and <code>return</code>; NameError and scope; what import brings in).</li>
-      <li>Points: 10 + 10 + 10 + 5 + 15, then 15 + 5 + 10 + 10 + 10, bonus 3 + 4 + 3. Change them in <code>lesson.js</code>.</li>
-      <li>The report is plain text, so a student could edit it. Pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
+      <li><strong>How functions are graded.</strong> The page looks for the <code>def</code> line with the right name and parameters, a <code>return</code> where one is asked for, the calls the task names, and what the script printed. The practice boxes run the student's function with a second value (another name for <code>greet</code>, n = 10 for <code>fib</code> and <code>fib2</code>) so that answers printed by hand don't pass.</li>
+      <li><strong>Q1 task 1</strong> asks students to call <code>greet</code> once, since a function that is never called prints nothing for the page to check. The <code>import math</code> line shown after Part A in the posting is read as the reminder in task 2.</li>
+      <li><strong>Q1 Part C</strong> is answered in comments. Its last line, <code>print(first_variable)</code>, is a NameError, and an error stops homework.py there, so the code is shown in the starter as comments and students run it in the box under the task instead.</li>
+      <li><strong>Q2 Part A.</strong> Both functions start from <code>[0, 1]</code>, so for n = 0 or 1 they return two numbers, not n. The page follows the posting and tests n = 7 and n = 10 only. With n = 7 both give <code>[0, 1, 1, 2, 3, 5, 8]</code>.</li>
+      <li><strong>Q2 Part B.</strong> The body of <code>ask_ok</code> is up to the student. The page checks the def line has <code>retries=4</code>, that it is called once with only the prompt and once with <code>retries=1</code>, and that the output shows a 4 and a 1.</li>
+      <li><strong>The bonus.</strong> The outputs are 10, 15 and 8, in that order. The second question reads “Explain mystery(5) works…” in the posting; the page reads it as “Explain why mystery(5) works…”.</li>
+      <li>Written answers (Q1 tasks 5, 6 and 7, Q2 task 6, bonus task 2) are for you to grade; the page checks only that the key idea is there.</li>
+      <li>Points: Q1 10 + 10 + 5 + 5 + 5 + 10 + 5 = 50, Q2 15 + 10 + 5 + 10 + 5 + 5 = 50, bonus 5 + 5. Change them in <code>lesson.js</code>.</li>
+      <li>The downloaded <code>homework.py</code> is plain text: the report at the top as comments, then each script with what it printed. A student could edit it, so pasting its scripts back into this page settles any doubt. Please don't run students' code with Python on your own computer.</li>
       <li>Progress, code and names are saved in each student's own browser only. Nothing is sent anywhere.</li>
     </ul>
   </section>

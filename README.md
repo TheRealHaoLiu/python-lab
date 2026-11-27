@@ -5,6 +5,7 @@ Interactive Python homework for a middle-school class, live at
 
 | # | Homework | Page | Notebook |
 |---|---|---|---|
+| 10 | Functions and Modules (function basics and scope, Fibonacci with while and for, default arguments, import math) | [`functions/`](https://therealhaoliu.github.io/python-lab/functions/) (not linked from the landing page yet) | none |
 | 9 | break and continue (squares and Fibonacci, for or while?, break and continue) | [`hw9/`](https://therealhaoliu.github.io/python-lab/hw9/) | none |
 | 8 | Loops (wizard's potion assembly line, magic coin counter, huge hairy pants) | [`hw8/`](https://therealhaoliu.github.io/python-lab/hw8/) | none |
 | 7 | Flow Control (roller coaster height check, joke machine, secret word) | [`hw7/`](https://therealhaoliu.github.io/python-lab/hw7/) | none |
@@ -22,11 +23,13 @@ here for the next student. Their points per task are the pages' own; the posting
 the course skips. Its playground (`js/app.js` buildFs) evaluates one editable f-string and shows
 what every `{…}` became.
 
-`site/functions/` is an **unlisted draft** (not on the landing page, `noindex`): functions and
-modules, written from the book's chapter 7 ahead of the homework that covers them (it sat at
-`/hw9/` until the real Homework 9 turned out to be break/continue), to be reworded to the real
-posting. It brings the function-machine picture (`js/app.js` buildFn: pick a function, type
-the arguments, see what the body prints and what the call returns).
+`site/functions/` is **Homework 10** (functions and modules), built from the posting. It started as
+a draft written from the book's chapter 7 ahead of the homework (it sat at `/hw9/` until the real
+Homework 9 turned out to be break/continue). It stays off the landing page and `noindex` until it
+is linked. It brings the function-machine picture (`js/app.js` buildFn: pick a function, type the
+arguments, see what the body prints and what the call returns), and its hand-in button saves the
+report as a `.py` file (`data-ext="py"` on `#dl-report`), since the teacher asks for the Python
+script in Google Classroom.
 
 **Turtle track** (`site/turtle/`, separate from the homework pages): the same lessons drawn
 with the turtle. Lesson 6 (loops) and lesson 1 (first steps, variables) exist; the plan for the
@@ -60,6 +63,7 @@ site/
   hw7/              Homework 7 (if/elif/else, and/or, None): slider pictures instead of boxes
   hw8/              Homework 8 (for, range(), while, nested loops): step through a loop one turn at a time
   hw9/              Homework 9 (sequences, for vs while, break and continue): the loop picture shows jumps
+  functions/        Homework 10 (functions and modules): the function machine; hand-in saves a .py file
   hw1/ … hw4/       Homeworks 1–4: shell transcript and type badges; variables as labels;
                     %s / .format() / f-string slot machine (js/app.js buildFmt); lists
   turtle/           the turtle track: index, turtle.css, turtle-view.js, t1/ and t6/ (same layout as hwN/)

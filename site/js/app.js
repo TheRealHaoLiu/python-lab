@@ -1594,16 +1594,18 @@ $('#copy-report').addEventListener('click', async e => {
     reportMsg('Copy was blocked. The report is selected below: press Ctrl/⌘+C.', true);
   }
 });
-$('#dl-report').addEventListener('click', async () => {
+$('#dl-report').addEventListener('click', async e => {
   reportMsg('');
+  // data-ext="py" on the button: the report is all comments plus the scripts, so it saves as a .py file
+  const py = e.currentTarget.dataset.ext === 'py';
   const r = await refreshPreview(); if (!r) return;
   const slug = nameEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'homework';
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([r], { type: 'text/plain;charset=utf-8' }));
-  a.download = `${LESSON_ID}-${slug}.txt`;
+  a.href = URL.createObjectURL(new Blob([r], { type: (py ? 'text/x-python' : 'text/plain') + ';charset=utf-8' }));
+  a.download = `${LESSON_ID}-${slug}.${py ? 'py' : 'txt'}`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  reportMsg('Downloaded. Attach the file to your assignment in Google Classroom.');
+  reportMsg(py ? 'Downloaded. Upload this .py file to your assignment in Google Classroom, then press Turn in.' : 'Downloaded. Attach the file to your assignment in Google Classroom.');
 });
 }
 
